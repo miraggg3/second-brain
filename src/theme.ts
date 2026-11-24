@@ -1,57 +1,65 @@
-// Own visual identity: "field journal". Light = graph paper, dark = blueprint.
-// The light/dark choice follows Telegram; the accent ink is a Premium option.
+// Applies the chosen theme + card style to the page and to Telegram's own bars.
 
 import { effect, signal } from "@preact/signals";
 import { canUse, inTelegram, tg } from "./telegram";
 import { data, isPremium } from "./store";
+import { PALETTES, themeIsPremium, type Palette } from "./themes";
+import type { ThemeId } from "./types";
 
-export const DEFAULT_ACCENT = "#FF5B1F";
-
-export const ACCENTS: { color: string; name: string }[] = [
-  { color: "#FF5B1F", name: "Сигнальный" },
-  { color: "#3346FF", name: "Ультрамарин" },
-  { color: "#8FD61F", name: "Кислотный" },
-  { color: "#FF2E88", name: "Маджента" },
-  { color: "#FFC21A", name: "Жёлтый" },
-  { color: "#00A99D", name: "Бирюза" },
-];
-
-const PAPER = { light: "#F1ECE1", dark: "#0E1A2B" };
-const BAR = { light: "#161616", dark: "#08111E" };
-
-function detect(): "light" | "dark" {
+function detectScheme(): "light" | "dark" {
   if (inTelegram) return tg!.colorScheme;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-export const scheme = signal(detect());
+export const scheme = signal(detectScheme());
 
-// readable text color on top of the accent
-function onAccent(hex: string): string {
-  const n = parseInt(hex.slice(1), 16);
-  const [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255].map((c) => {
-    const s = c / 255;
-    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.3 ? "#161616" : "#FFFFFF";
+// Theme colors of the Telegram app itself
+function telegramPalette(): Palette {
+  const dark = scheme.value === "dark";
+  const base = dark ? PALETTES.midnight : PALETTES.snow;
+  const p = tg?.themeParams ?? {};
+  const accent = p.button_color ?? base.accent;
+  return {
+    ...base,
+    name: "Telegram",
+    bg: p.secondary_bg_color ?? base.bg,
+    card: p.section_bg_color ?? p.bg_color ?? base.card,
+    text: p.text_color ?? base.text,
+    muted: p.hint_color ?? base.muted,
+    accent,
+    accent2: p.link_color ?? accent,
+    onAccent: p.button_text_color ?? "#FFFFFF",
+  };
+}
+
+export function paletteOf(id: ThemeId): Palette {
+  if (id === "auto") return scheme.value === "dark" ? PALETTES.midnight : PALETTES.snow;
+  if (id === "telegram") return telegramPalette();
+  return PALETTES[id];
 }
 
 export function initTheme() {
   if (inTelegram) tg!.onEvent("themeChanged", () => (scheme.value = tg!.colorScheme));
-  else window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => (scheme.value = detect()));
+  else window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => (scheme.value = detectScheme()));
 
   effect(() => {
-    const mode = scheme.value;
-    const chosen = data.value.settings.accent;
-    const accent = isPremium.value && chosen ? chosen : DEFAULT_ACCENT;
+    const s = data.value.settings;
+    // premium themes/styles fall back when the subscription ends
+    const themeId = themeIsPremium(s.theme) && !isPremium.value ? "auto" : s.theme;
+    const style = s.style === "glass" && !isPremium.value ? "soft" : s.style;
+    const p = paletteOf(themeId);
     const root = document.documentElement;
-    root.dataset.theme = mode;
-    root.style.setProperty("--accent", accent);
-    root.style.setProperty("--on-accent", onAccent(accent));
+    root.dataset.mode = p.dark ? "dark" : "light";
+    root.dataset.style = style;
+    const vars: Record<string, string> = {
+      "--bg": p.bg, "--card": p.card, "--raised": p.raised, "--text": p.text, "--muted": p.muted,
+      "--accent": p.accent, "--accent2": p.accent2, "--on-accent": p.onAccent,
+    };
+    for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     if (canUse("6.1")) {
-      tg!.setHeaderColor(PAPER[mode]);
-      tg!.setBackgroundColor(PAPER[mode]);
+      tg!.setHeaderColor(p.bg);
+      tg!.setBackgroundColor(p.bg);
     }
-    if (canUse("7.10")) tg!.setBottomBarColor?.(BAR[mode]);
+    if (canUse("7.10")) tg!.setBottomBarColor?.(p.bg);
   });
 }

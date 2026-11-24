@@ -1,13 +1,12 @@
-// "Заметки": index cards with #tags, search, editor.
+// "Заметки": search, tag filter, cards, editor.
 
 import { useEffect, useRef, useState } from "preact/hooks";
 import { signal } from "@preact/signals";
 import { data, update } from "../store";
 import { closeOverlay, openOverlay } from "../nav";
-import { formatDate, newId } from "../utils";
-import { Empty, Icon } from "../ui";
+import { formatDate, newId, num, plural } from "../utils";
+import { Empty, Icon, PageHead } from "../ui";
 import { confirmAsk, haptic } from "../telegram";
-import { Header } from "./Header";
 
 const query = signal("");
 
@@ -18,13 +17,28 @@ export function tagsOf(text: string): string[] {
 }
 
 export function titleOf(text: string): string {
-  const first = text.trim().split("\n")[0];
+  const first = text.trim().split("\n")[0] ?? "";
   return first.length > 60 ? first.slice(0, 60) + "…" : first || "Без названия";
 }
 
 function previewOf(text: string): string {
-  const rest = text.trim().split("\n").slice(1).join(" ").trim();
-  return rest.length > 90 ? rest.slice(0, 90) + "…" : rest;
+  const rest = text.trim().split("\n").slice(1).join(" ").replace(/#[\p{L}\p{N}_-]+/gu, "").trim();
+  return rest.length > 110 ? rest.slice(0, 110) + "…" : rest;
+}
+
+// tag -> stable hue so each tag keeps its color
+function tagHue(tag: string): number {
+  let h = 0;
+  for (const ch of tag) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return h;
+}
+
+function relTime(ms: number): string {
+  const diff = Date.now() - ms;
+  if (diff < 60_000) return "только что";
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} мин назад`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} ч назад`;
+  return formatDate(ms, { day: "numeric", month: "short" });
 }
 
 export function Notes() {
@@ -41,28 +55,38 @@ export function Notes() {
 
   return (
     <>
-      <Header idx="03" title="Заметки" sub={`${notes.length} в архиве`} />
-      <input class="search" type="search" placeholder="Поиск или #тег" value={query.value}
-        onInput={(e) => (query.value = e.currentTarget.value)} />
+      <PageHead title="Заметки" sub={`${num(notes.length, 0)} ${plural(notes.length, "запись", "записи", "записей")}`} />
+      <div class="search-box big">
+        <Icon name="search" size={18} />
+        <input type="search" placeholder="Поиск по заметкам" value={query.value}
+          onInput={(e) => (query.value = e.currentTarget.value)} />
+      </div>
       {tags.length > 0 && (
-        <div class="tags">
+        <div class="chips scroll">
+          <button class={`chip ${!q ? "on" : ""}`} onClick={() => (query.value = "")}>Все</button>
           {tags.map((t) => (
-            <button key={t} class={`tag ${q === "#" + t ? "on" : ""}`}
+            <button key={t} class={`chip tag ${q === "#" + t ? "on" : ""}`} style={{ "--h": tagHue(t) }}
               onClick={() => (query.value = q === "#" + t ? "" : "#" + t)}>#{t}</button>
           ))}
         </div>
       )}
-      <div class="cards">
-        {visible.map((n) => (
-          <button key={n.id} class="index-card" onClick={() => openOverlay({ name: "editor", id: n.id })}>
-            <span class="mono date">{formatDate(n.updated, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
-            <b>{titleOf(n.text)}</b>
-            {previewOf(n.text) && <span class="sub">{previewOf(n.text)}</span>}
-          </button>
-        ))}
+      <div class="note-list">
+        {visible.map((n) => {
+          const nt = tagsOf(n.text);
+          return (
+            <button key={n.id} class="note card" onClick={() => openOverlay({ name: "editor", id: n.id })}>
+              <b>{titleOf(n.text)}</b>
+              {previewOf(n.text) && <p>{previewOf(n.text)}</p>}
+              <span class="note-foot">
+                {nt.slice(0, 3).map((t) => <span key={t} class="tag-dot" style={{ "--h": tagHue(t) }}>#{t}</span>)}
+                <small>{relTime(n.updated)}</small>
+              </span>
+            </button>
+          );
+        })}
       </div>
-      {!notes.length && <Empty>Пусто. Нажми «+» и запиши первую мысль. Теги ставь через #, например #идея.</Empty>}
-      {notes.length > 0 && !visible.length && <Empty>Ничего не нашлось.</Empty>}
+      {!notes.length && <Empty icon="notes">Здесь будут твои мысли, идеи и списки. Нажми «+», чтобы записать первую. Теги ставь через #.</Empty>}
+      {notes.length > 0 && !visible.length && <Empty icon="search">Ничего не нашлось</Empty>}
       <button class="fab" aria-label="Новая заметка" onClick={() => openOverlay({ name: "editor", id: null })}>
         <Icon name="plus" size={28} />
       </button>
@@ -91,7 +115,6 @@ export function NoteEditor({ id }: { id: string | null }) {
   editorText.current = text;
   useEffect(() => area.current?.focus(), []);
 
-  // a new note gets an id on first save so "back" does not create duplicates
   const done = () => {
     saveEditor(id);
     haptic();
@@ -105,18 +128,20 @@ export function NoteEditor({ id }: { id: string | null }) {
     closeOverlay();
   };
 
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+
   return (
     <div class="editor">
-      <div class="editor-bar">
-        <span class="mono sub">{note ? `изм. ${formatDate(note.updated)}` : "новая запись"}</span>
-        <span class="mono sub">{tagsOf(text).map((t) => "#" + t).join(" ")}</span>
+      <div class="editor-top">
+        <button class="icon-btn" aria-label="Назад" onClick={done}><Icon name="chevron" size={22} /></button>
+        <span class="muted small">{note ? `Изменено ${relTime(note.updated)}` : "Новая заметка"} · {words} {plural(words, "слово", "слова", "слов")}</span>
+        {note
+          ? <button class="icon-btn danger" aria-label="Удалить" onClick={remove}><Icon name="trash" size={20} /></button>
+          : <span style={{ width: 40 }} />}
       </div>
-      <textarea ref={area} class="paper-text" value={text} placeholder="Пиши мысль. Теги через #, например #идея"
+      <textarea ref={area} class="editor-text" value={text} placeholder={"Заголовок\n\nПиши мысль. Теги через #, например #идея"}
         onInput={(e) => setText(e.currentTarget.value)} />
-      <div class="row dock">
-        <button class="btn" onClick={done}>Готово</button>
-        {note && <button class="btn ghost danger" onClick={remove}><Icon name="trash" size={18} /></button>}
-      </div>
+      <button class="btn block dock" onClick={done}><Icon name="check" size={18} /> Готово</button>
     </div>
   );
 }

@@ -1,13 +1,14 @@
-// Navigation: four tabs plus full-screen overlays (note editor, premium, data).
+// Navigation: five tabs plus full-screen overlays.
 
 import { signal } from "@preact/signals";
 
-export type Tab = "today" | "gym" | "notes" | "progress";
+export type Tab = "today" | "gym" | "notes" | "progress" | "profile";
 
 export type Overlay =
   | { name: "editor"; id: string | null }
   | { name: "premium" }
-  | { name: "data" };
+  | { name: "data" }
+  | { name: "appearance" };
 
 export const tab = signal<Tab>("today");
 export const overlay = signal<Overlay | null>(null);

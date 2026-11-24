@@ -1,17 +1,16 @@
-// "Зал": log a workout as a table of sets, history, streaks and attendance grid.
+// "Зал": start a workout, log sets with steppers, history and stats.
 
 import { useEffect, useState } from "preact/hooks";
 import { data, set, update } from "../store";
 import type { Workout } from "../types";
 import {
-  activeWorkout, clock, duration, exerciseNames, finishedWorkouts, previousSet, volumeOf,
+  activeWorkout, clock, duration, exerciseNames, finishedWorkouts, previousSet, setCount, volumeOf,
   weekStreak, workoutsSince,
 } from "../domain";
-import { dayKey, formatDate, newId, num, pad2, parseNum, plural, startOfWeek } from "../utils";
+import { dayKey, newId, num, plural, startOfWeek } from "../utils";
 import { Heatmap } from "../charts";
-import { Empty, Icon, Section, toast } from "../ui";
+import { Card, Empty, Icon, PageHead, Stepper, toast } from "../ui";
 import { confirmAsk, haptic, hapticOk } from "../telegram";
-import { Header } from "./Header";
 
 export function startWorkout() {
   if (activeWorkout(data.value.workouts)) return;
@@ -19,39 +18,55 @@ export function startWorkout() {
   haptic("medium");
 }
 
-// change the active workout
 function editActive(fn: (w: Workout) => Workout) {
   update("workouts", (ws) => ws.map((w) => (w.end ? w : fn(w))));
 }
 
 // ---------- active workout ----------
 
-function SetForm({ w, i }: { w: Workout; i: number }) {
-  const it = w.items[i];
+function ExerciseCard({ w, i }: { w: Workout; i: number }) {
+  const it = w.items[i]!;
   const last = it.sets[it.sets.length - 1] ?? previousSet(data.value.workouts, it.name);
-  const [kg, setKg] = useState(last ? String(last.w) : "");
-  const [reps, setReps] = useState(last ? String(last.r) : "");
+  const [kg, setKg] = useState(last?.w ?? 20);
+  const [reps, setReps] = useState(last?.r ?? 10);
 
-  const add = () => {
-    const r = parseInt(reps, 10);
-    if (!(r > 0)) return toast("Сколько повторений?");
-    const weight = Math.max(0, parseNum(kg) ?? 0);
+  const addSet = () => {
     haptic("medium");
     editActive((x) => ({
       ...x,
-      items: x.items.map((e, j) => (j === i ? { ...e, sets: [...e.sets, { w: weight, r }] } : e)),
+      items: x.items.map((e, j) => (j === i ? { ...e, sets: [...e.sets, { w: kg, r: reps }] } : e)),
     }));
   };
 
+  const removeSet = (j: number) =>
+    editActive((x) => ({
+      ...x,
+      items: x.items.map((e, k) => (k === i ? { ...e, sets: e.sets.filter((_, n) => n !== j) } : e)),
+    }));
+
+  const removeExercise = async () => {
+    if (it.sets.length && !(await confirmAsk(`Убрать «${it.name}» со всеми подходами?`))) return;
+    editActive((x) => ({ ...x, items: x.items.filter((_, j) => j !== i) }));
+  };
+
   return (
-    <div class="set-form">
-      <input class="mono" type="number" inputMode="decimal" step="0.5" min="0" placeholder="кг"
-        value={kg} onInput={(e) => setKg(e.currentTarget.value)} />
-      <span class="mono">×</span>
-      <input class="mono" type="number" inputMode="numeric" step="1" min="1" placeholder="повт"
-        value={reps} onInput={(e) => setReps(e.currentTarget.value)} />
-      <button class="btn small" onClick={add}>+ подход</button>
-    </div>
+    <Card title={it.name} action={<button class="icon-btn" aria-label="Убрать упражнение" onClick={removeExercise}><Icon name="close" size={18} /></button>}>
+      {it.sets.length > 0 && (
+        <div class="sets">
+          {it.sets.map((s, j) => (
+            <button key={j} class="set-chip" onClick={() => removeSet(j)} title="Нажми, чтобы удалить">
+              <small>{j + 1}</small>
+              <b>{num(s.w)}</b>×{s.r}
+            </button>
+          ))}
+        </div>
+      )}
+      <div class="set-controls">
+        <Stepper value={kg} step={2.5} unit="кг" onChange={setKg} />
+        <Stepper value={reps} step={1} min={1} unit="повт" onChange={setReps} digits={0} />
+      </div>
+      <button class="btn block" onClick={addSet}><Icon name="plus" size={18} /> Подход {it.sets.length + 1}</button>
+    </Card>
   );
 }
 
@@ -63,24 +78,19 @@ function ActiveWorkout({ w }: { w: Workout }) {
     return () => clearInterval(t);
   }, []);
 
-  const addExercise = () => {
-    const n = name.trim();
-    if (!n) return;
-    editActive((x) => ({ ...x, items: [...x.items, { name: n.slice(0, 60), sets: [] }] }));
+  const used = new Set(w.items.map((i) => i.name));
+  const q = name.trim().toLowerCase();
+  const suggestions = exerciseNames(data.value.workouts)
+    .filter((n) => !used.has(n) && (!q || n.toLowerCase().includes(q)))
+    .slice(0, 8);
+
+  const addExercise = (n: string) => {
+    const clean = n.trim();
+    if (!clean) return;
+    haptic();
+    editActive((x) => ({ ...x, items: [...x.items, { name: clean.slice(0, 60), sets: [] }] }));
     setName("");
   };
-
-  const removeExercise = async (i: number) => {
-    const it = w.items[i];
-    if (it.sets.length && !(await confirmAsk(`Убрать «${it.name}» со всеми подходами?`))) return;
-    editActive((x) => ({ ...x, items: x.items.filter((_, j) => j !== i) }));
-  };
-
-  const removeSet = (i: number, j: number) =>
-    editActive((x) => ({
-      ...x,
-      items: x.items.map((e, k) => (k === i ? { ...e, sets: e.sets.filter((_, n) => n !== j) } : e)),
-    }));
 
   const finish = async () => {
     const items = w.items.filter((it) => it.sets.length);
@@ -92,7 +102,7 @@ function ActiveWorkout({ w }: { w: Workout }) {
     const end = Date.now();
     editActive((x) => ({ ...x, items, end }));
     hapticOk();
-    toast(`Записано: ${duration(end - w.start)}, ${num(volumeOf({ ...w, items }), 0)} кг объёма`);
+    toast(`Отличная работа! ${duration(end - w.start)}, ${num(volumeOf({ ...w, items }), 0)} кг объёма`);
   };
 
   const cancel = async () => {
@@ -102,52 +112,36 @@ function ActiveWorkout({ w }: { w: Workout }) {
 
   return (
     <>
-      <header class="head">
-        <div class="head-title">
-          <span class="idx live">REC</span>
-          <h1>Тренировка</h1>
-          <p class="mono sub">объём {num(volumeOf(w), 0)} кг</p>
+      <section class="workout-hero">
+        <p class="eyebrow light"><span class="live-dot" /> Тренировка идёт</p>
+        <div class="workout-clock">{clock(Date.now() - w.start)}</div>
+        <div class="workout-meta">
+          <span><b>{w.items.length}</b> упр.</span>
+          <span><b>{setCount(w)}</b> {plural(setCount(w), "подход", "подхода", "подходов")}</span>
+          <span><b>{num(volumeOf(w), 0)}</b> кг</span>
         </div>
-        <div class="stopwatch mono">{clock(Date.now() - w.start)}</div>
-      </header>
+        <div class="workout-actions">
+          <button class="btn light" onClick={finish}><Icon name="check" size={18} /> Завершить</button>
+          <button class="btn glass-btn" onClick={cancel}>Отменить</button>
+        </div>
+      </section>
 
-      {w.items.map((it, i) => (
-        <Section key={`${i}-${it.name}`} num={pad2(i + 1)} label={it.name}
-          action={<button class="x" aria-label="Убрать упражнение" onClick={() => removeExercise(i)}><Icon name="close" size={16} /></button>}>
-          {it.sets.length > 0 && (
-            <table class="log mono">
-              <tbody>
-                {it.sets.map((s, j) => (
-                  <tr key={j}>
-                    <td class="n">{j + 1}</td>
-                    <td><b>{num(s.w)}</b> кг</td>
-                    <td>× <b>{s.r}</b></td>
-                    <td class="r"><button class="x" aria-label="Удалить подход" onClick={() => removeSet(i, j)}><Icon name="close" size={14} /></button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          <SetForm key={it.sets.length} w={w} i={i} />
-        </Section>
-      ))}
+      {w.items.map((it, i) => <ExerciseCard key={`${i}-${it.name}`} w={w} i={i} />)}
 
-      <Section label="Добавить упражнение">
-        <div class="set-form">
-          <input list="ex-names" placeholder="Жим лёжа, присед…" value={name} autoComplete="off"
+      <Card title={w.items.length ? "Следующее упражнение" : "Первое упражнение"}>
+        <div class="search-box">
+          <Icon name="search" size={18} />
+          <input placeholder="Найти или ввести своё" value={name} autoComplete="off"
             onInput={(e) => setName(e.currentTarget.value)}
-            onKeyDown={(e) => e.key === "Enter" && addExercise()} />
-          <button class="btn small" onClick={addExercise}><Icon name="plus" size={18} /></button>
+            onKeyDown={(e) => e.key === "Enter" && addExercise(name)} />
         </div>
-        <datalist id="ex-names">
-          {exerciseNames(data.value.workouts).map((n) => <option key={n} value={n} />)}
-        </datalist>
-      </Section>
-
-      <div class="row">
-        <button class="btn" onClick={finish}>Завершить</button>
-        <button class="btn ghost danger" onClick={cancel}>Отменить</button>
-      </div>
+        <div class="chips">
+          {name.trim() && !suggestions.some((s) => s.toLowerCase() === q) && (
+            <button class="chip add" onClick={() => addExercise(name)}><Icon name="plus" size={14} /> {name.trim()}</button>
+          )}
+          {suggestions.map((n) => <button key={n} class="chip" onClick={() => addExercise(n)}>{n}</button>)}
+        </div>
+      </Card>
     </>
   );
 }
@@ -174,45 +168,60 @@ function Overview() {
 
   return (
     <>
-      <Header idx="02" title="Зал" sub={`${all.length} ${plural(all.length, "тренировка", "тренировки", "тренировок")} в журнале`} />
+      <PageHead title="Зал" sub={`${all.length} ${plural(all.length, "тренировка", "тренировки", "тренировок")} в журнале`} />
 
-      <button class="btn big" onClick={startWorkout}><Icon name="play" size={18} /> Начать тренировку</button>
+      <button class="start-card" onClick={startWorkout}>
+        <span class="start-play"><Icon name="play" size={26} /></span>
+        <span class="grow">
+          <b>Начать тренировку</b>
+          <small>Подходы записываются в пару касаний</small>
+        </span>
+      </button>
 
-      <div class="ledger">
-        <div><b>{week}</b><span>неделя</span></div>
-        <div><b>{month}</b><span>месяц</span></div>
-        <div><b>{streak}</b><span>{plural(streak, "неделя", "недели", "недель")} подряд</span></div>
+      <div class="stat-row">
+        <div class="stat"><b>{week}</b><small>на неделе</small></div>
+        <div class="stat"><b>{month}</b><small>за месяц</small></div>
+        <div class="stat"><b>{streak}<Icon name="flame" size={16} /></b><small>{plural(streak, "неделя", "недели", "недель")} подряд</small></div>
       </div>
 
-      <Section num="A" label="Посещения, 16 недель">
-        <Heatmap levelOf={(d) => Math.min(3, (perDay[d] ?? 0) * 2)} />
-      </Section>
+      <Card title="Посещения" icon="today">
+        <Heatmap levelOf={(d) => Math.min(3, (perDay[d] ?? 0) * 2)} color="var(--c-gym)" />
+        <div class="heat-legend"><span>меньше</span><i class="l0" /><i class="l1" /><i class="l2" /><i class="l3" /><span>больше</span></div>
+      </Card>
 
-      <Section num="B" label="Журнал">
-        {all.length ? all.slice(0, 40).map((w) => (
-          <div key={w.id} class={`entry ${openId === w.id ? "open" : ""}`}>
-            <button class="entry-head" onClick={() => setOpenId(openId === w.id ? null : w.id)}>
-              <span class="mono date">{formatDate(w.start, { day: "2-digit", month: "2-digit" })}</span>
-              <span class="grow">{w.items.map((i) => i.name).join(" · ")}</span>
-              <span class="mono sub">{duration((w.end ?? w.start) - w.start)}</span>
+      <h2 class="section-title">История</h2>
+      {all.length ? all.slice(0, 40).map((w) => {
+        const d = new Date(w.start);
+        const open = openId === w.id;
+        return (
+          <div key={w.id} class={`history card ${open ? "open" : ""}`}>
+            <button class="history-head" onClick={() => setOpenId(open ? null : w.id)}>
+              <span class="date-badge">
+                <b>{d.getDate()}</b>
+                <small>{d.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "")}</small>
+              </span>
+              <span class="grow">
+                <b>{w.items.map((i) => i.name).slice(0, 2).join(", ")}{w.items.length > 2 ? ` +${w.items.length - 2}` : ""}</b>
+                <small>{duration((w.end ?? w.start) - w.start)} · {setCount(w)} {plural(setCount(w), "подход", "подхода", "подходов")} · {num(volumeOf(w), 0)} кг</small>
+              </span>
+              <span class={`chev ${open ? "up" : ""}`}><Icon name="chevron" size={18} /></span>
             </button>
-            {openId === w.id && (
-              <div class="entry-body">
+            {open && (
+              <div class="history-body">
                 {w.items.map((it) => (
-                  <p key={it.name}>
+                  <div key={it.name} class="history-ex">
                     <b>{it.name}</b>
-                    <span class="mono sub">{it.sets.map((s) => `${num(s.w)}×${s.r}`).join("  ")}</span>
-                  </p>
+                    <div class="sets">
+                      {it.sets.map((s, j) => <span key={j} class="set-chip static"><b>{num(s.w)}</b>×{s.r}</span>)}
+                    </div>
+                  </div>
                 ))}
-                <div class="row">
-                  <span class="mono sub grow">объём {num(volumeOf(w), 0)} кг</span>
-                  <button class="link danger" onClick={() => remove(w.id)}>удалить</button>
-                </div>
+                <button class="text-btn danger" onClick={() => remove(w.id)}><Icon name="trash" size={16} /> Удалить тренировку</button>
               </div>
             )}
           </div>
-        )) : <Empty>Здесь появятся твои тренировки. Нажми «Начать» в зале — и записывай подходы прямо между ними.</Empty>}
-      </Section>
+        );
+      }) : <Card><Empty icon="gym">Здесь появятся твои тренировки. Нажми «Начать» в зале — и записывай подходы между ними.</Empty></Card>}
     </>
   );
 }

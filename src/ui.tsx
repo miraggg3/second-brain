@@ -1,8 +1,9 @@
-// Shared UI: toast, bottom-sheet form, icons and layout pieces.
+// Shared UI kit: toast, bottom-sheet form, icons, cards, rings, steppers, avatar.
 
 import { signal } from "@preact/signals";
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef } from "preact/hooks";
+import { hapticTick } from "./telegram";
 
 // ---------- toast ----------
 
@@ -28,6 +29,7 @@ export interface Field {
   value?: string | number;
   placeholder?: string;
   step?: string;
+  suffix?: string;
 }
 
 interface SheetState {
@@ -55,7 +57,7 @@ export function Sheet() {
   const s = sheet.value;
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
-    if (s) setTimeout(() => form.current?.querySelector("input")?.focus(), 60);
+    if (s) setTimeout(() => form.current?.querySelector("input")?.focus(), 80);
   }, [s]);
   if (!s) return null;
 
@@ -69,23 +71,26 @@ export function Sheet() {
   return (
     <div class="sheet-bg" onClick={(e) => e.target === e.currentTarget && closeSheet()}>
       <form class="sheet" ref={form} onSubmit={submit}>
-        <div class="sheet-tab">запись</div>
+        <div class="sheet-grip" />
         <h3>{s.title}</h3>
         {s.fields.map((f) => (
-          <label key={f.name}>
+          <label key={f.name} class="sheet-field">
             <span>{f.label}</span>
-            <input
-              name={f.name}
-              type={f.type ?? "text"}
-              defaultValue={String(f.value ?? "")}
-              placeholder={f.placeholder}
-              step={f.step}
-              inputMode={f.type === "number" ? "decimal" : undefined}
-              autoComplete="off"
-            />
+            <div class="input-wrap">
+              <input
+                name={f.name}
+                type={f.type ?? "text"}
+                defaultValue={String(f.value ?? "")}
+                placeholder={f.placeholder}
+                step={f.step}
+                inputMode={f.type === "number" ? "decimal" : undefined}
+                autoComplete="off"
+              />
+              {f.suffix && <i>{f.suffix}</i>}
+            </div>
           </label>
         ))}
-        <div class="row">
+        <div class="sheet-actions">
           <button type="button" class="btn ghost" onClick={() => closeSheet()}>Отмена</button>
           <button type="submit" class="btn">{s.ok}</button>
         </div>
@@ -94,33 +99,49 @@ export function Sheet() {
   );
 }
 
-// ---------- icons (hand-drawn-ish strokes) ----------
+// ---------- icons (24px, rounded strokes) ----------
 
 const PATHS = {
-  day: "M4 5h16v15H4z M4 10h16 M9 3v4 M15 3v4",
-  gym: "M3 9v6 M6.5 6v12 M17.5 6v12 M21 9v6 M6.5 12h11",
-  notes: "M6 3h9l4 4v14H6z M15 3v4h4 M9 12h7 M9 16h5",
-  progress: "M4 4v16h16 M7.5 15l4-4.5 3 3L20 7",
-  star: "M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z",
-  data: "M8 4v16 M4 8l4-4 4 4 M16 20V4 M12 16l4 4 4-4",
-  plus: "M12 5v14 M5 12h14",
-  close: "M6 6l12 12 M18 6L6 18",
-  back: "M15 5l-7 7 7 7",
-  send: "M4 11.5L20 4l-6.5 16-2.5-6.5z",
-  download: "M12 4v11 M7 10l5 5 5-5 M5 20h14",
-  upload: "M12 20V9 M7 14l5-5 5 5 M5 4h14",
-  copy: "M9 9h11v11H9z M15 9V4H4v11h5",
-  paste: "M8 4h8v3H8z M6 5H4v16h16V5h-2 M8 12h8 M8 16h5",
-  trash: "M4 7h16 M9 7V4h6v3 M6 7l1 13h10l1-13",
-  play: "M7 4l13 8-13 8z",
-  lock: "M6 11h12v9H6z M8.5 11V8a3.5 3.5 0 0 1 7 0v3",
+  today: "M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+  gym: "M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11",
+  notes: "M7 3.5h7.5L19 8v12.5H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2zM14 3.5V8h5M8.5 12.5h7M8.5 16h5",
+  progress: "M4 19.5h16M6.5 16v-4M11 16V8M15.5 16v-6M20 16V5",
+  profile: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20c.8-3.6 3.9-5.5 7.5-5.5s6.7 1.9 7.5 5.5",
+  sparkle: "M12 3l2 5.5L19.5 10.5 14 12.5 12 18l-2-5.5L4.5 10.5 10 8.5zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z",
+  palette: "M12 3.5a8.5 8.5 0 1 0 0 17c1.3 0 1.8-.9 1.5-1.8-.4-1.1.3-2.2 1.5-2.2H17a3.5 3.5 0 0 0 3.5-3.5c0-5-3.8-9.5-8.5-9.5zM7.5 12.5h.01M9.5 8h.01M14.5 8h.01M17 11.5h.01",
+  transfer: "M7 4L3.5 7.5 7 11M3.5 7.5H16M17 13l3.5 3.5L17 20M20.5 16.5H8",
+  chevron: "M9.5 6l6 6-6 6",
+  plus: "M12 5v14M5 12h14",
+  minus: "M5 12h14",
+  close: "M6.5 6.5l11 11M17.5 6.5l-11 11",
+  check: "M5 12.5l4.5 4.5L19 7.5",
+  trash: "M4.5 7h15M9.5 7V4.5h5V7M6.5 7l.8 12.5h9.4l.8-12.5M10 11v5M14 11v5",
+  send: "M20.5 3.5L10 14M20.5 3.5L14 20.5l-4-6.5-6.5-4z",
+  download: "M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14",
+  upload: "M12 15.5V4.5M7.5 9L12 4.5 16.5 9M5 19.5h14",
+  copy: "M9 9h10.5v10.5H9zM15 9V4.5H4.5V15H9",
+  share: "M12 3.5v11M8 7.5l4-4 4 4M6 11H5v9.5h14V11h-1",
+  play: "M8 5.5v13l10-6.5z",
+  lock: "M6.5 11h11v9h-11zM8.5 11V8a3.5 3.5 0 0 1 7 0v3",
+  flame: "M12 21c3.6 0 6-2.4 6-6 0-4.2-3.5-6.4-4.5-11-2.4 1.6-3.5 4.2-3.3 6.4C9.3 9.8 8.6 9 8.4 7.6 6.8 9.2 6 11.3 6 15c0 3.6 2.4 6 6 6z",
+  drop: "M12 3.5c3.3 4 6 7.2 6 10.5a6 6 0 0 1-12 0c0-3.3 2.7-6.5 6-10.5z",
+  moon: "M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z",
+  scale: "M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v12A1.5 1.5 0 0 1 19 19.5H5A1.5 1.5 0 0 1 3.5 18V6A1.5 1.5 0 0 1 5 4.5zM9 9.5a3 3 0 0 1 6 0M12 9.5l1.2-1.5",
+  smile: "M12 20.5a8.5 8.5 0 1 0 0-17 8.5 8.5 0 0 0 0 17zM8.5 14c.9 1.3 2 2 3.5 2s2.6-.7 3.5-2M9 9.5h.01M15 9.5h.01",
+  trophy: "M8 4.5h8v5a4 4 0 0 1-8 0zM8 6.5H4.5c0 3 1.5 4.5 3.7 4.8M16 6.5h3.5c0 3-1.5 4.5-3.7 4.8M12 13.5v3.5M8.5 20h7M10 17h4",
+  crown: "M4 8l4 4 4-6.5 4 6.5 4-4-1.5 10h-13zM5.5 20.5h13",
+  edit: "M4.5 19.5l1-4L16 5a2.1 2.1 0 0 1 3 3L8.5 18.5zM14 7l3 3",
+  timer: "M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 9v4l2.5 2M9.5 2.5h5",
+  heart: "M12 20s-7.5-4.6-7.5-10A4.5 4.5 0 0 1 12 7.1 4.5 4.5 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z",
+  shield: "M12 3.5l7 2.5v5.5c0 4.6-3 8-7 9.5-4-1.5-7-4.9-7-9.5V6z",
+  search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4",
 } as const;
 
 export type IconName = keyof typeof PATHS;
 
-export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
+export function Icon({ name, size = 22, stroke = 2 }: { name: IconName; size?: number; stroke?: number }) {
   return (
-    <svg class="ico" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+    <svg class="ico" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" stroke-width={stroke}>
       <path d={PATHS[name]} />
     </svg>
   );
@@ -128,28 +149,136 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
 
 // ---------- layout ----------
 
-export function Section(props: {
-  label: string;
-  num?: string;
+export function Card(props: {
+  title?: string;
+  icon?: IconName;
   action?: ComponentChildren;
   class?: string;
   children?: ComponentChildren;
   onClick?: () => void;
 }) {
   return (
-    <section class={`sheet-card ${props.class ?? ""}`} onClick={props.onClick}>
-      <div class="sec-head">
-        <span class="sec-label">
-          {props.num && <b>{props.num}</b>}
-          {props.label}
-        </span>
-        {props.action}
-      </div>
+    <section class={`card ${props.class ?? ""}`} onClick={props.onClick}>
+      {(props.title || props.action) && (
+        <div class="card-head">
+          <h2>
+            {props.icon && <Icon name={props.icon} size={18} />}
+            {props.title}
+          </h2>
+          {props.action}
+        </div>
+      )}
       {props.children}
     </section>
   );
 }
 
-export function Empty({ children }: { children: ComponentChildren }) {
-  return <p class="empty">{children}</p>;
+export function Empty({ icon, children }: { icon?: IconName; children: ComponentChildren }) {
+  return (
+    <div class="empty">
+      {icon && <span class="empty-ico"><Icon name={icon} size={22} /></span>}
+      <p>{children}</p>
+    </div>
+  );
+}
+
+export function PageHead({ title, sub, right }: { title: string; sub?: string; right?: ComponentChildren }) {
+  return (
+    <header class="page-head">
+      <div class="grow">
+        {sub && <p class="eyebrow">{sub}</p>}
+        <h1>{title}</h1>
+      </div>
+      {right}
+    </header>
+  );
+}
+
+// Progress ring. value 0..1
+export function Ring({ value, color, size = 64, stroke = 7, children }:
+  { value: number; color: string; size?: number; stroke?: number; children?: ComponentChildren }) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const v = Math.max(0, Math.min(1, value));
+  return (
+    <div class="ring" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size / 2} cy={size / 2} r={r} class="ring-track" stroke-width={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} class="ring-value" stroke={color} stroke-width={stroke}
+          stroke-dasharray={`${c} ${c}`} stroke-dashoffset={c * (1 - v)} />
+      </svg>
+      <div class="ring-label">{children}</div>
+    </div>
+  );
+}
+
+// − value + control. Tapping the number lets you type it.
+export function Stepper({ value, step, min = 0, unit, onChange, digits = 1 }:
+  { value: number; step: number; min?: number; unit: string; onChange: (v: number) => void; digits?: number }) {
+  const fmt = (v: number) => Number(v.toFixed(digits)).toLocaleString("ru-RU");
+  const change = (d: number) => {
+    hapticTick();
+    onChange(Math.max(min, Number((value + d).toFixed(2))));
+  };
+  const type = async () => {
+    const v = await ask({ title: unit === "кг" ? "Вес" : "Повторения", fields: [{ name: "v", label: unit, type: "number", step: "any", value }] });
+    const n = v ? parseFloat(v.v.replace(",", ".")) : NaN;
+    if (Number.isFinite(n) && n >= min) onChange(n);
+  };
+  return (
+    <div class="stepper">
+      <button type="button" aria-label="Меньше" onClick={() => change(-step)}><Icon name="minus" size={18} /></button>
+      <button type="button" class="stepper-val" onClick={type}>
+        <b>{fmt(value)}</b>
+        <small>{unit}</small>
+      </button>
+      <button type="button" aria-label="Больше" onClick={() => change(step)}><Icon name="plus" size={18} /></button>
+    </div>
+  );
+}
+
+const AVATAR_GRADIENTS = [
+  ["#FF8A65", "#F0528C"], ["#5B5BF6", "#22C6D6"], ["#10B981", "#A3E635"],
+  ["#9B5CF6", "#F0528C"], ["#F59E0B", "#EF4444"], ["#06B6D4", "#3B82F6"],
+];
+
+export function Avatar({ name, photo, size = 44, seed = 0, ring }:
+  { name: string; photo?: string; size?: number; seed?: number; ring?: boolean }) {
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";
+  const [a, b] = AVATAR_GRADIENTS[Math.abs(seed) % AVATAR_GRADIENTS.length]!;
+  return (
+    <span class={`avatar ${ring ? "ring-gold" : ""}`} style={{ width: size, height: size, fontSize: size * 0.38, background: `linear-gradient(135deg, ${a}, ${b})` }}>
+      {initials}
+      {photo && <img src={photo} alt="" referrerpolicy="no-referrer" onError={(e) => (e.currentTarget.style.display = "none")} />}
+    </span>
+  );
+}
+
+export function Segmented<T extends string>({ value, options, onChange }:
+  { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
+  return (
+    <div class="segmented" role="tablist">
+      {options.map((o) => (
+        <button key={o.id} role="tab" class={o.id === value ? "on" : ""} onClick={() => { hapticTick(); onChange(o.id); }}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function Row({ icon, color, title, sub, right, onClick, danger }: {
+  icon: IconName; color?: string; title: string; sub?: string; right?: ComponentChildren;
+  onClick?: () => void; danger?: boolean;
+}) {
+  return (
+    <button class={`row-item ${danger ? "danger" : ""}`} onClick={onClick}>
+      <span class="row-ico" style={color ? { background: color } : undefined}><Icon name={icon} size={19} /></span>
+      <span class="row-text">
+        <b>{title}</b>
+        {sub && <small>{sub}</small>}
+      </span>
+      {right ?? <Icon name="chevron" size={18} />}
+    </button>
+  );
 }

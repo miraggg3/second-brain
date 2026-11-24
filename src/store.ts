@@ -12,7 +12,7 @@ export const DEFAULTS: AppData = {
   habits: [],
   metrics: { water: {}, sleep: {}, mood: {}, weight: {} },
   trackers: [],
-  settings: { accent: null, waterGoal: 2000, lastBackup: 0 },
+  settings: { theme: "auto", style: "soft", waterGoal: 2000, lastBackup: 0, joined: 0 },
   premium: { until: 0, lifetime: false },
 };
 
@@ -34,6 +34,10 @@ export async function loadAll() {
   for (const key of DATA_KEYS) {
     const raw = await loadKey<unknown>(key, null);
     (next as Record<DataKey, unknown>)[key] = withDefaults(key, raw);
+  }
+  if (!next.settings.joined) {
+    next.settings = { ...next.settings, joined: Date.now() };
+    saveKey("settings", next.settings).catch(() => undefined);
   }
   data.value = next;
   loaded.value = true;

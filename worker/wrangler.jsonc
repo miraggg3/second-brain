@@ -1,0 +1,19 @@
+{
+  // Cloudflare Worker: Telegram bot (webhook) + API for the Mini App.
+  // Setup steps are in ../README.md, section "Сервер бота".
+  "name": "second-brain-bot",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-01",
+  "kv_namespaces": [
+    // `npx wrangler kv namespace create DB` prints the id to paste here
+    { "binding": "DB", "id": "PASTE_KV_NAMESPACE_ID" }
+  ],
+  "vars": {
+    "WEBAPP_URL": "https://miraggg3.github.io/second-brain/",
+    // your Telegram user id: enables /refund <user_id> <charge_id>
+    "ADMIN_ID": ""
+  }
+  // secrets (not in this file): BOT_TOKEN, WEBHOOK_SECRET
+  //   npx wrangler secret put BOT_TOKEN
+  //   npx wrangler secret put WEBHOOK_SECRET
+}
