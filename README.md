@@ -78,3 +78,13 @@ Mini App работает только по **HTTPS**. Для теста — т�
 3. Приложение спрашивает `/api/me` и включает Premium.
 
 Команды бота: `/start`, `/paysupport`, `/terms`, `/refund <user_id> <charge_id>` (только `ADMIN_ID`).
+
+## Публикация на GitHub Pages
+
+Workflow `.github/workflows/pages.yml` собирает приложение на каждый PR,
+а при push в `main` публикует `dist/` на https://miraggg3.github.io/second-brain/.
+В настройках репозитория: **Settings → Pages → Source: GitHub Actions**.
+
+На Pages работает весь интерфейс и хранение данных. Оплата Stars и «Отправить файл в чат»
+требуют запущенного бот-сервера: укажи его адрес в `VITE_API_BASE` при сборке
+(например, переменной репозитория) или открывай приложение прямо с сервера.
