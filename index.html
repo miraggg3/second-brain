@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Второй мозг</title>
+  <!-- Telegram Mini App SDK: gives window.Telegram.WebApp -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- List screen -->
+  <section id="list-screen">
+    <header>
+      <input id="search" type="search" placeholder="Поиск или #тег">
+    </header>
+    <div id="tags"></div>
+    <ul id="notes"></ul>
+    <p id="empty" hidden>Пока пусто. Нажми «Новая заметка».</p>
+    <footer>
+      <button id="new-note">Новая заметка</button>
+      <button id="export" class="secondary">Экспорт</button>
+    </footer>
+  </section>
+
+  <!-- Edit screen -->
+  <section id="edit-screen" hidden>
+    <textarea id="editor" placeholder="Пиши мысль. Теги через #, например #идея"></textarea>
+    <footer>
+      <button id="save">Сохранить</button>
+      <button id="delete" class="danger">Удалить</button>
+      <button id="back" class="secondary">Назад</button>
+    </footer>
+  </section>
+
+  <!-- JSZip: builds the .zip for the Markdown export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="storage.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
