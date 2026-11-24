@@ -3,75 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <!-- Where the bot server lives. Empty = same origin (the server also serves these files). -->
-  <meta name="api-base" content="">
   <title>Второй мозг</title>
   <!-- Telegram Mini App SDK: gives window.Telegram.WebApp -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- ===== Tabs (rendered by today.js / gym.js / progress.js) ===== -->
-  <main id="screen-today" class="screen"></main>
-  <main id="screen-gym" class="screen" hidden></main>
-  <main id="screen-progress" class="screen" hidden></main>
-
-  <!-- Notes tab keeps a static skeleton so the search field never loses focus -->
-  <main id="screen-notes" class="screen" hidden>
-    <header class="top">
-      <h1>Заметки</h1>
-      <button id="export" class="link">Экспорт</button>
-    </header>
-    <input id="search" type="search" placeholder="Поиск или #тег">
-    <div id="tags"></div>
-    <ul id="notes"></ul>
-    <p id="empty" class="hint" hidden>Пока пусто. Нажми «+», чтобы записать мысль.</p>
-    <button id="new-note" class="fab" aria-label="Новая заметка">+</button>
-  </main>
-
-  <!-- ===== Overlays ===== -->
-  <section id="screen-editor" class="screen overlay" hidden>
-    <textarea id="editor" placeholder="Пиши мысль. Теги через #, например #идея"></textarea>
-    <footer class="actions">
-      <button id="save">Сохранить</button>
-      <button id="delete" class="danger">Удалить</button>
-      <button id="back" class="secondary">Назад</button>
-    </footer>
-  </section>
-
-  <section id="screen-premium" class="screen overlay" hidden></section>
-
-  <!-- ===== Bottom tab bar ===== -->
-  <nav id="tabbar">
-    <button data-act="tab" data-tab="today"><span>📅</span>Сегодня</button>
-    <button data-act="tab" data-tab="gym"><span>🏋️</span>Зал</button>
-    <button data-act="tab" data-tab="notes"><span>🧠</span>Заметки</button>
-    <button data-act="tab" data-tab="progress"><span>📈</span>Прогресс</button>
-  </nav>
-
-  <!-- ===== Shared UI: bottom sheet form + toast ===== -->
-  <div id="sheet" hidden>
-    <form id="sheet-form" class="sheet-box">
-      <h3 id="sheet-title"></h3>
-      <div id="sheet-fields"></div>
-      <div class="row">
-        <button type="button" id="sheet-cancel" class="secondary">Отмена</button>
-        <button type="submit" id="sheet-ok">Сохранить</button>
-      </div>
-    </form>
-  </div>
-  <div id="toast" hidden></div>
-
-  <!-- JSZip: builds the .zip for the Markdown export -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="storage.js"></script>
-  <script src="app.js"></script>
-  <script src="charts.js"></script>
-  <script src="notes.js"></script>
-  <script src="today.js"></script>
-  <script src="gym.js"></script>
-  <script src="progress.js"></script>
-  <script src="premium.js"></script>
-  <script src="main.js"></script>
+  <div id="app"></div>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>
