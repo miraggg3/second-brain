@@ -10,11 +10,33 @@ export interface TgDeviceStorage {
   clear(cb?: StorageCallback<boolean>): void;
 }
 
+export interface TgThemeParams {
+  bg_color?: string;
+  secondary_bg_color?: string;
+  section_bg_color?: string;
+  text_color?: string;
+  hint_color?: string;
+  link_color?: string;
+  button_color?: string;
+  button_text_color?: string;
+}
+
+export interface TgWebAppUser {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  is_premium?: boolean;
+}
+
 export interface TgWebApp {
   initData: string;
+  initDataUnsafe: { user?: TgWebAppUser };
   version: string;
   platform: string;
   colorScheme: "light" | "dark";
+  themeParams: TgThemeParams;
   isVersionAtLeast(version: string): boolean;
   ready(): void;
   expand(): void;
@@ -25,6 +47,8 @@ export interface TgWebApp {
   onEvent(event: string, cb: () => void): void;
   showConfirm(message: string, cb: (ok: boolean) => void): void;
   openInvoice(url: string, cb: (status: "paid" | "cancelled" | "failed" | "pending") => void): void;
+  openTelegramLink(url: string): void;
+  downloadFile?(params: { url: string; file_name: string }, cb?: (accepted: boolean) => void): void;
   BackButton: { show(): void; hide(): void; onClick(cb: () => void): void };
   HapticFeedback: {
     impactOccurred(style: "light" | "medium" | "heavy" | "rigid" | "soft"): void;
@@ -49,12 +73,18 @@ export function canUse(version: string): boolean {
   return !!tg && inTelegram && tg.isVersionAtLeast(version);
 }
 
+export const tgUser: TgWebAppUser | null = inTelegram ? tg!.initDataUnsafe.user ?? null : null;
+
 export function haptic(style: "light" | "medium" | "heavy" = "light") {
   if (canUse("6.1")) tg!.HapticFeedback.impactOccurred(style);
 }
 
 export function hapticOk() {
   if (canUse("6.1")) tg!.HapticFeedback.notificationOccurred("success");
+}
+
+export function hapticTick() {
+  if (canUse("6.1")) tg!.HapticFeedback.selectionChanged();
 }
 
 export function confirmAsk(text: string): Promise<boolean> {

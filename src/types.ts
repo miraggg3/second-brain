@@ -44,10 +44,15 @@ export interface Tracker {
   values: DayValues;
 }
 
+export type ThemeId = "auto" | "snow" | "midnight" | "telegram" | "ocean" | "forest" | "sakura" | "mint" | "neon";
+export type CardStyle = "soft" | "glass" | "outline";
+
 export interface Settings {
-  accent: string | null;
+  theme: ThemeId;
+  style: CardStyle;
   waterGoal: number;
   lastBackup: number; // 0 = never
+  joined: number; // first launch on this device
 }
 
 export interface Premium {

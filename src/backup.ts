@@ -6,6 +6,7 @@ import type {
   AppData, DayValues, Exercise, Habit, Metrics, Note, Tracker, UserData, Workout,
 } from "./types";
 import { DEFAULTS } from "./store";
+import { isCardStyle, isThemeId } from "./themes";
 import { dayKey, num, plural } from "./utils";
 
 export const BACKUP_APP = "second-brain";
@@ -123,8 +124,10 @@ export function parseBackup(text: string): Backup {
       trackers: arr(d.trackers, cleanTracker),
       settings: {
         ...DEFAULTS.settings,
-        accent: str(s.accent, 16),
+        theme: isThemeId(s.theme) ? s.theme : DEFAULTS.settings.theme,
+        style: isCardStyle(s.style) ? s.style : DEFAULTS.settings.style,
         waterGoal: fin(s.waterGoal) ?? DEFAULTS.settings.waterGoal,
+        joined: fin(s.joined) ?? 0,
       },
     },
   };
@@ -173,6 +176,10 @@ export function mergeData(local: AppData, inc: UserData): AppData {
     habits: byId(local.habits, inc.habits, (a, b) => ({ ...b, done: { ...a.done, ...b.done } })),
     trackers: byId(local.trackers, inc.trackers, (a, b) => ({ ...b, values: { ...a.values, ...b.values } })),
     metrics,
+    settings: {
+      ...local.settings,
+      joined: Math.min(local.settings.joined || Date.now(), inc.settings.joined || Date.now()),
+    },
   };
 }
 

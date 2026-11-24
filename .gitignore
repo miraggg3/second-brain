@@ -1,5 +1,6 @@
 node_modules/
 dist/
-server/.env
-server/data/
 .claude/
+worker/.dev.vars
+worker/.wrangler/
+.wrangler/
