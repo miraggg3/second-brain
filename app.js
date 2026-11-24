@@ -1,174 +1,225 @@
-// Second brain - MVP: create, edit, search notes, tags, Markdown export.
+// Core: app state, helpers, navigation and shared UI (sheet, toast, confirm).
+// Feature files (today.js, gym.js, notes.js, progress.js, premium.js) register
+// their screen renderers in `renderers` and their buttons in `actions`.
 
 const tg = window.Telegram ? window.Telegram.WebApp : null;
+const inTelegram = !!(tg && tg.initData); // false when opened in a normal browser
 
-let notes = [];          // [{ id, text, created, updated }]
-let currentId = null;    // note open in the editor, null = new note
+// ---------- state ----------
+
+// Every top-level key is stored separately in DeviceStorage / localStorage.
+const DEFAULTS = {
+  notes: [],      // [{ id, text, created, updated }]
+  workouts: [],   // [{ id, start, end|null, items: [{ name, sets: [{ w, r }] }] }]
+  habits: [],     // [{ id, name, emoji, created, done: { "2026-11-24": true } }]
+  metrics: { water: {}, sleep: {}, mood: {}, weight: {} }, // { kind: { day: number } }
+  trackers: [],   // premium: [{ id, name, unit, step, values: { day: number } }]
+  settings: { accent: null, waterGoal: 2000 },
+  premium: { until: 0, lifetime: false }, // cached copy of the server answer
+};
+
+const S = JSON.parse(JSON.stringify(DEFAULTS));
+
+async function loadAll() {
+  for (const key of Object.keys(DEFAULTS)) {
+    const value = await loadKey(key, DEFAULTS[key]);
+    const def = DEFAULTS[key];
+    // plain objects: merge so new sub-keys added in updates get their defaults
+    S[key] = !Array.isArray(def) && typeof def === "object" ? { ...def, ...value } : value;
+  }
+}
+
+function save(key) {
+  return saveKey(key, S[key]).catch((e) => {
+    console.error(e);
+    toast("Не удалось сохранить");
+  });
+}
+
+// ---------- helpers ----------
 
 const $ = (id) => document.getElementById(id);
 
-// ---------- helpers ----------
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 
 function newId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
-// "#идея #work" -> ["идея", "work"]
-function tagsOf(text) {
-  const found = text.match(/#[\p{L}\p{N}_-]+/gu) || [];
-  return [...new Set(found.map((t) => t.slice(1).toLowerCase()))];
+// Local calendar day as "YYYY-MM-DD"
+function dayKey(d = new Date()) {
+  const x = new Date(d);
+  const mm = String(x.getMonth() + 1).padStart(2, "0");
+  const dd = String(x.getDate()).padStart(2, "0");
+  return `${x.getFullYear()}-${mm}-${dd}`;
 }
 
-function titleOf(text) {
-  const first = text.trim().split("\n")[0];
-  return first.length > 60 ? first.slice(0, 60) + "…" : first || "Без названия";
+function daysAgo(n) {
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  d.setDate(d.getDate() - n);
+  return d;
 }
 
-function formatDate(ms) {
-  return new Date(ms).toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
+// Monday 00:00 of the week containing `d`
+function startOfWeek(d = new Date()) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return x;
 }
 
-function haptic() {
-  if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+function formatDate(ms, opts = { dateStyle: "short", timeStyle: "short" }) {
+  return new Date(ms).toLocaleString("ru-RU", opts);
 }
 
-// ---------- list screen ----------
-
-function renderList() {
-  const query = $("search").value.trim().toLowerCase();
-  const list = $("notes");
-  list.innerHTML = "";
-
-  const visible = notes
-    .filter((n) => {
-      if (!query) return true;
-      if (query.startsWith("#")) return tagsOf(n.text).includes(query.slice(1));
-      return n.text.toLowerCase().includes(query);
-    })
-    .sort((a, b) => b.updated - a.updated);
-
-  for (const note of visible) {
-    const li = document.createElement("li");
-    const title = document.createElement("strong");
-    title.textContent = titleOf(note.text);
-    const meta = document.createElement("small");
-    meta.textContent = formatDate(note.updated);
-    li.append(title, meta);
-    li.onclick = () => openEditor(note.id);
-    list.append(li);
-  }
-
-  $("empty").hidden = notes.length > 0;
-  renderTags();
+function num(v, digits = 1) {
+  return Number(v.toFixed(digits)).toLocaleString("ru-RU");
 }
 
-function renderTags() {
-  const box = $("tags");
-  box.innerHTML = "";
-  const all = [...new Set(notes.flatMap((n) => tagsOf(n.text)))].sort();
-  for (const tag of all) {
-    const chip = document.createElement("button");
-    chip.className = "chip";
-    chip.textContent = "#" + tag;
-    chip.onclick = () => {
-      $("search").value = "#" + tag;
-      renderList();
-    };
-    box.append(chip);
-  }
+// "1 тренировка / 2 тренировки / 5 тренировок"
+function plural(n, one, few, many) {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b > 1 && b < 5) return few;
+  if (b === 1) return one;
+  return many;
 }
 
-// ---------- edit screen ----------
-
-function openEditor(id) {
-  currentId = id;
-  const note = notes.find((n) => n.id === id);
-  $("editor").value = note ? note.text : "";
-  $("delete").hidden = !note;
-  $("list-screen").hidden = true;
-  $("edit-screen").hidden = false;
-  $("editor").focus();
-  if (tg) tg.BackButton.show();
+function haptic(type = "light") {
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred(type);
 }
 
-function closeEditor() {
-  $("edit-screen").hidden = true;
-  $("list-screen").hidden = false;
-  if (tg) tg.BackButton.hide();
-  renderList();
+function hapticOk() {
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
 }
 
-async function saveCurrent() {
-  const text = $("editor").value;
-  if (!text.trim()) return closeEditor();
+// ---------- actions (event delegation) ----------
+// <button data-act="habit-toggle" data-id="..."> calls actions["habit-toggle"](el)
 
-  const now = Date.now();
-  const note = notes.find((n) => n.id === currentId);
-  if (note) {
-    note.text = text;
-    note.updated = now;
-  } else {
-    notes.push({ id: newId(), text, created: now, updated: now });
-  }
-  await saveNotes(notes);
+const actions = {};
+const changes = {};
+
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-act]");
+  if (el && actions[el.dataset.act]) actions[el.dataset.act](el, e);
+});
+
+document.addEventListener("change", (e) => {
+  const el = e.target.closest("[data-change]");
+  if (el && changes[el.dataset.change]) changes[el.dataset.change](el, e);
+});
+
+// ---------- navigation ----------
+
+const renderers = {}; // tab name -> function that redraws that screen
+let currentTab = "today";
+let currentOverlay = null;
+
+function hideAllScreens() {
+  document.querySelectorAll(".screen").forEach((s) => (s.hidden = true));
+}
+
+function showTab(name) {
+  currentTab = name;
+  currentOverlay = null;
+  hideAllScreens();
+  $("screen-" + name).hidden = false;
+  $("tabbar").hidden = false;
+  document.querySelectorAll("#tabbar button").forEach((b) =>
+    b.classList.toggle("active", b.dataset.tab === name));
+  if (tg && tg.BackButton) tg.BackButton.hide();
+  render();
+  window.scrollTo(0, 0);
+}
+
+function render() {
+  if (renderers[currentTab]) renderers[currentTab]();
+}
+
+function openOverlay(name) {
+  currentOverlay = name;
+  hideAllScreens();
+  $("tabbar").hidden = true;
+  $("screen-" + name).hidden = false;
+  if (renderers[name]) renderers[name]();
+  if (tg && tg.BackButton) tg.BackButton.show();
+  window.scrollTo(0, 0);
+}
+
+function closeOverlay() {
+  showTab(currentTab);
+}
+
+actions.tab = (el) => {
   haptic();
-  closeEditor();
+  showTab(el.dataset.tab);
+};
+
+// ---------- toast ----------
+
+let toastTimer = null;
+function toast(text) {
+  const t = $("toast");
+  t.textContent = text;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (t.hidden = true), 2500);
 }
 
-async function deleteCurrent() {
-  notes = notes.filter((n) => n.id !== currentId);
-  await saveNotes(notes);
-  haptic();
-  closeEditor();
+// ---------- confirm ----------
+
+function confirmAsk(text) {
+  return new Promise((resolve) => {
+    if (inTelegram && tg.isVersionAtLeast && tg.isVersionAtLeast("6.2")) {
+      tg.showConfirm(text, (ok) => resolve(ok));
+    } else {
+      resolve(window.confirm(text));
+    }
+  });
 }
 
-// ---------- export (Obsidian-compatible Markdown) ----------
+// ---------- bottom sheet form ----------
+// ask({ title, fields: [{ name, label, type, value, placeholder, step }] })
+// resolves to { name: value } or null when cancelled.
 
-function fileNameOf(note) {
-  const safe = titleOf(note.text).replace(/[\\/:*?"<>|#…]/g, "").trim().slice(0, 50);
-  return `${safe || "note"}-${note.id}.md`;
+let sheetResolve = null;
+
+function ask({ title, fields, ok = "Сохранить" }) {
+  $("sheet-title").textContent = title;
+  $("sheet-ok").textContent = ok;
+  $("sheet-fields").innerHTML = fields.map((f) => `
+    <label>${esc(f.label || "")}
+      <input name="${esc(f.name)}" type="${f.type || "text"}" value="${esc(f.value ?? "")}"
+        placeholder="${esc(f.placeholder || "")}" ${f.step ? `step="${f.step}"` : ""}
+        ${f.type === "number" ? 'inputmode="decimal"' : ""} autocomplete="off">
+    </label>`).join("");
+  $("sheet").hidden = false;
+  const first = $("sheet-fields").querySelector("input");
+  if (first) setTimeout(() => first.focus(), 50);
+  return new Promise((resolve) => (sheetResolve = resolve));
 }
 
-async function exportZip() {
-  const zip = new JSZip();
-  for (const note of notes) {
-    const frontmatter =
-      "---\n" +
-      `created: ${new Date(note.created).toISOString()}\n` +
-      `updated: ${new Date(note.updated).toISOString()}\n` +
-      `tags: [${tagsOf(note.text).join(", ")}]\n` +
-      "---\n\n";
-    zip.file(fileNameOf(note), frontmatter + note.text + "\n");
-  }
-  const blob = await zip.generateAsync({ type: "blob" });
-
-  // Works in a normal browser and Telegram Desktop. On phones the Telegram
-  // webview may ignore this download; later the bot will send the file to the chat.
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `second-brain-${new Date().toISOString().slice(0, 10)}.zip`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+function closeSheet(result) {
+  $("sheet").hidden = true;
+  if (sheetResolve) sheetResolve(result);
+  sheetResolve = null;
 }
 
-// ---------- start ----------
-
-async function start() {
-  if (tg) {
-    tg.ready();
-    tg.expand();
-    tg.BackButton.onClick(closeEditor);
-  }
-
-  $("search").oninput = renderList;
-  $("new-note").onclick = () => openEditor(null);
-  $("save").onclick = saveCurrent;
-  $("delete").onclick = deleteCurrent;
-  $("back").onclick = closeEditor;
-  $("export").onclick = exportZip;
-
-  notes = await loadNotes();
-  renderList();
+function sheetOpen() {
+  return !$("sheet").hidden;
 }
 
-start();
+$("sheet-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const values = {};
+  for (const input of $("sheet-fields").querySelectorAll("input")) values[input.name] = input.value.trim();
+  closeSheet(values);
+});
+$("sheet-cancel").onclick = () => closeSheet(null);
+$("sheet").addEventListener("click", (e) => {
+  if (e.target.id === "sheet") closeSheet(null);
+});
