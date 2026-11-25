@@ -11,7 +11,8 @@ import { dayKey, newId, num, plural, startOfWeek } from "../utils";
 import { Heatmap } from "../charts";
 import { Card, Empty, Icon, PageHead, Stepper, toast } from "../ui";
 import { confirmAsk, haptic, hapticOk } from "../telegram";
-import { shareFrom } from "../share";
+import { shareImageItem } from "../share";
+import { useHold } from "../gestures";
 
 export function startWorkout() {
   if (activeWorkout(data.value.workouts)) return;
@@ -179,55 +180,68 @@ function Overview() {
         </span>
       </button>
 
-      <div class="stat-row" data-share="gym">
-        <div class="stat"><b>{week}</b><small>на неделе</small></div>
-        <div class="stat"><b>{month}</b><small>за месяц</small></div>
-        <div class="stat"><b>{streak}<Icon name="flame" size={16} /></b><small>{plural(streak, "неделя", "недели", "недель")} подряд</small></div>
-      </div>
+      <StatRow week={week} month={month} streak={streak} />
 
-      <Card share="gym" title="Посещения" icon="today" action={
-        <button class="icon-btn" aria-label="Поделиться" onClick={(e) => shareFrom(e.currentTarget)}><Icon name="share" size={19} /></button>}>
+      <Card share="gym" title="Посещения" icon="today">
         <Heatmap levelOf={(d) => Math.min(3, (perDay[d] ?? 0) * 2)} color="var(--c-gym)" />
         <div class="heat-legend"><span>меньше</span><i class="l0" /><i class="l1" /><i class="l2" /><i class="l3" /><span>больше</span></div>
       </Card>
 
       <h2 class="section-title">История</h2>
-      {all.length ? all.slice(0, 40).map((w) => {
-        const d = new Date(w.start);
-        const open = openId === w.id;
-        return (
-          <div key={w.id} class={`history card ${open ? "open" : ""}`} data-share={`workout:${w.id}`}>
-            <button class="history-head" onClick={() => setOpenId(open ? null : w.id)}>
-              <span class="date-badge">
-                <b>{d.getDate()}</b>
-                <small>{d.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "")}</small>
-              </span>
-              <span class="grow">
-                <b>{w.items.map((i) => i.name).slice(0, 2).join(", ")}{w.items.length > 2 ? ` +${w.items.length - 2}` : ""}</b>
-                <small>{duration((w.end ?? w.start) - w.start)} · {setCount(w)} {plural(setCount(w), "подход", "подхода", "подходов")} · {num(volumeOf(w), 0)} кг</small>
-              </span>
-              <span class={`chev ${open ? "up" : ""}`}><Icon name="chevron" size={18} /></span>
-            </button>
-            {open && (
-              <div class="history-body">
-                {w.items.map((it) => (
-                  <div key={it.name} class="history-ex">
-                    <b>{it.name}</b>
-                    <div class="sets">
-                      {it.sets.map((s, j) => <span key={j} class="set-chip static"><b>{num(s.w)}</b>×{s.r}</span>)}
-                    </div>
-                  </div>
-                ))}
-                <div class="row-actions">
-                  <button class="text-btn" onClick={(e) => shareFrom(e.currentTarget)}><Icon name="share" size={16} /> Поделиться</button>
-                  <button class="text-btn danger" onClick={() => remove(w.id)}><Icon name="trash" size={16} /> Удалить</button>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      }) : <Card><Empty icon="gym">Здесь появятся твои тренировки. Нажми «Начать» в зале — и записывай подходы между ними.</Empty></Card>}
+      {all.length ? all.slice(0, 40).map((w) => (
+        <HistoryItem key={w.id} w={w} open={openId === w.id} onToggle={() => setOpenId(openId === w.id ? null : w.id)} onRemove={() => remove(w.id)} />
+      )) : <Card><Empty icon="gym">Здесь появятся твои тренировки. Нажми «Начать» в зале — и записывай подходы между ними.</Empty></Card>}
     </>
+  );
+}
+
+function StatRow({ week, month, streak }: { week: number; month: number; streak: number }) {
+  const ref = useHold<HTMLDivElement>({ menu: () => [shareImageItem("gym")] });
+  return (
+    <div ref={ref} class="stat-row" data-share="gym">
+      <div class="stat"><b>{week}</b><small>на неделе</small></div>
+      <div class="stat"><b>{month}</b><small>за месяц</small></div>
+      <div class="stat"><b>{streak}<Icon name="flame" size={16} /></b><small>{plural(streak, "неделя", "недели", "недель")} подряд</small></div>
+    </div>
+  );
+}
+
+// a past workout: tap to expand, hold for "share" / "delete"
+function HistoryItem({ w, open, onToggle, onRemove }: { w: Workout; open: boolean; onToggle: () => void; onRemove: () => void }) {
+  const d = new Date(w.start);
+  const ref = useHold<HTMLDivElement>({
+    menu: () => [
+      shareImageItem(`workout:${w.id}`),
+      { label: "Удалить тренировку", icon: "trash", danger: true, run: onRemove },
+    ],
+  });
+  return (
+    <div ref={ref} class={`history card ${open ? "open" : ""}`} data-share={`workout:${w.id}`}>
+      <button class="history-head" onClick={onToggle}>
+        <span class="date-badge">
+          <b>{d.getDate()}</b>
+          <small>{d.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "")}</small>
+        </span>
+        <span class="grow">
+          <b>{w.items.map((i) => i.name).slice(0, 2).join(", ")}{w.items.length > 2 ? ` +${w.items.length - 2}` : ""}</b>
+          <small>{duration((w.end ?? w.start) - w.start)} · {setCount(w)} {plural(setCount(w), "подход", "подхода", "подходов")} · {num(volumeOf(w), 0)} кг</small>
+        </span>
+        <span class={`chev ${open ? "up" : ""}`}><Icon name="chevron" size={18} /></span>
+      </button>
+      {open && (
+        <div class="history-body">
+          {w.items.map((it) => (
+            <div key={it.name} class="history-ex">
+              <b>{it.name}</b>
+              <div class="sets">
+                {it.sets.map((s, j) => <span key={j} class="set-chip static"><b>{num(s.w)}</b>×{s.r}</span>)}
+              </div>
+            </div>
+          ))}
+          <p class="muted small">Зажми карточку, чтобы поделиться или удалить</p>
+        </div>
+      )}
+    </div>
   );
 }
 

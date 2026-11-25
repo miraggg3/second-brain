@@ -4,6 +4,8 @@ import { signal } from "@preact/signals";
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef } from "preact/hooks";
 import { hapticTick } from "./telegram";
+import { useHold } from "./gestures";
+import { shareImageItem } from "./share";
 
 // ---------- toast ----------
 
@@ -135,6 +137,9 @@ const PATHS = {
   heart: "M12 20s-7.5-4.6-7.5-10A4.5 4.5 0 0 1 12 7.1 4.5 4.5 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z",
   shield: "M12 3.5l7 2.5v5.5c0 4.6-3 8-7 9.5-4-1.5-7-4.9-7-9.5V6z",
   search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4",
+  folder: "M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z",
+  grid: "M4.5 4.5h6v6h-6zM13.5 4.5h6v6h-6zM4.5 13.5h6v6h-6zM13.5 13.5h6v6h-6z",
+  eyeOff: "M3 3l18 18M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 8.5 4.5 9.5 6-.5.8-1.6 2.3-3.2 3.6M6.4 7.6C4.5 8.9 3.1 10.8 2.5 12c1 1.5 4.5 6 9.5 6 1.6 0 3-.4 4.3-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2",
 } as const;
 
 export type IconName = keyof typeof PATHS;
@@ -156,10 +161,11 @@ export function Card(props: {
   class?: string;
   children?: ComponentChildren;
   onClick?: () => void;
-  share?: string; // tracker key for "Поделиться", see shareCards.tsx
+  share?: string; // tracker key: hold the card to share it as a picture (shareCards.tsx)
 }) {
+  const ref = useHold<HTMLElement>({ menu: props.share ? () => [shareImageItem(props.share!)] : undefined });
   return (
-    <section class={`card ${props.class ?? ""}`} onClick={props.onClick} data-share={props.share}>
+    <section ref={ref} class={`card ${props.class ?? ""}`} onClick={props.onClick} data-share={props.share}>
       {(props.title || props.action) && (
         <div class="card-head">
           <h2>

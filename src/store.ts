@@ -11,6 +11,7 @@ const DESIGN_VERSION = 2;
 
 export const DEFAULTS: AppData = {
   notes: [],
+  folders: [],
   workouts: [],
   habits: [],
   metrics: { water: {}, sleep: {}, mood: {}, weight: {} },

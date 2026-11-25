@@ -14,7 +14,7 @@ import { Profile } from "./screens/Profile";
 import { PremiumScreen } from "./screens/Premium";
 import { DataScreen } from "./screens/DataScreen";
 import { Appearance } from "./screens/Appearance";
-import { installLongPressShare } from "./share";
+import { closeHoldMenu, holdMenu, HoldMenuLayer, installHoldGestures } from "./gestures";
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: "today", label: "Сегодня", icon: "today" },
@@ -25,6 +25,7 @@ const TABS: { id: Tab; label: string; icon: IconName }[] = [
 ];
 
 function onBack() {
+  if (holdMenu.value) return closeHoldMenu();
   if (sheet.value) return closeSheet();
   const o = overlay.value;
   if (o?.name === "editor") saveEditor(o.id);
@@ -48,7 +49,7 @@ function TabBar() {
 
 export function App() {
   useEffect(() => {
-    installLongPressShare(); // hold any card to send it as a picture
+    installHoldGestures(); // hold: menu, hold and move: drag (gestures.tsx)
     if (tg) {
       tg.ready();
       tg.expand();
@@ -62,7 +63,7 @@ export function App() {
     // Telegram's back button follows overlays and the sheet
     return effect(() => {
       if (!canUse("6.1")) return;
-      if (overlay.value || sheet.value) tg!.BackButton.show();
+      if (overlay.value || sheet.value || holdMenu.value) tg!.BackButton.show();
       else tg!.BackButton.hide();
     });
   }, []);
@@ -86,6 +87,7 @@ export function App() {
       <div class="backdrop" aria-hidden="true" />
       <main class={`page ${o ? "overlay" : ""}`} key={o ? o.name : tab.value}>{screen}</main>
       {!o && <TabBar />}
+      <HoldMenuLayer />
       <Sheet />
       <Toast />
     </>

@@ -5,6 +5,14 @@ export interface Note {
   text: string;
   created: number;
   updated: number;
+  folder?: string; // Folder.id, none = not in a folder
+  order?: number;  // manual position, lower first; none = by last edit
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  created: number;
 }
 
 export interface WorkSet {
@@ -54,6 +62,9 @@ export interface Settings {
   lastBackup: number; // 0 = never
   joined: number; // first launch on this device
   design?: number; // design version the settings were last migrated to
+  // tiles in "Тело" on the main screen, in order: "water" | "sleep" | "weight" |
+  // "mood" | "t:<tracker id>"; none = all of them
+  widgets?: string[];
 }
 
 export interface Premium {
@@ -63,6 +74,7 @@ export interface Premium {
 
 export interface AppData {
   notes: Note[];
+  folders: Folder[];
   workouts: Workout[];
   habits: Habit[];
   metrics: Metrics;

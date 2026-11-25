@@ -3,7 +3,9 @@
 import { useState } from "preact/hooks";
 import { signal } from "@preact/signals";
 import { data, isPremium } from "../store";
-import type { DayValues } from "../types";
+import type { DayValues, Habit } from "../types";
+import { useHold } from "../gestures";
+import { shareImageItem } from "../share";
 import { exerciseHistory, finishedWorkouts, habitStreak } from "../domain";
 import { dayKey, lastDays, num, shortDay } from "../utils";
 import { BarChart, Heatmap, LineChart, type Point } from "../charts";
@@ -53,11 +55,17 @@ function Habits() {
       <Card share="habits" title="Все привычки" icon="today">
         <Heatmap levelOf={level} />
       </Card>
-      {d.habits.map((h) => {
-        const done = days30.filter((x) => h.done[dayKey(x)]).length;
-        const streak = habitStreak(h);
-        return (
-          <div key={h.id} class="card habit-stat" data-share={`habit:${h.id}`}>
+      {d.habits.map((h) => <HabitStat key={h.id} h={h} days30={days30} />)}
+    </>
+  );
+}
+
+function HabitStat({ h, days30 }: { h: Habit; days30: Date[] }) {
+  const done = days30.filter((x) => h.done[dayKey(x)]).length;
+  const streak = habitStreak(h);
+  const ref = useHold<HTMLDivElement>({ menu: () => [shareImageItem(`habit:${h.id}`)] });
+  return (
+          <div ref={ref} class="card habit-stat" data-share={`habit:${h.id}`}>
             <Ring value={done / 30} color="var(--accent)" size={58} stroke={6}>
               <b class="small">{Math.round((done / 30) * 100)}%</b>
             </Ring>
@@ -69,9 +77,6 @@ function Habits() {
               </div>
             </div>
           </div>
-        );
-      })}
-    </>
   );
 }
 
