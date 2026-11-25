@@ -3,7 +3,7 @@
 // or foreign file can never corrupt the app.
 
 import type {
-  AppData, DayValues, Exercise, Habit, Metrics, Note, Tracker, UserData, Workout,
+  AppData, DayValues, Exercise, Folder, Habit, Metrics, Note, Tracker, UserData, Workout,
 } from "./types";
 import { DEFAULTS } from "./store";
 import { isCardStyle, isThemeId } from "./themes";
@@ -54,8 +54,24 @@ function dayValues(v: unknown): DayValues {
 
 const cleanNote = (x: Obj): Note | null => {
   const id = str(x.id, 64), text = str(x.text), created = fin(x.created), updated = fin(x.updated);
-  return id && text !== null && created !== null ? { id, text, created, updated: updated ?? created } : null;
+  if (!id || text === null || created === null) return null;
+  const note: Note = { id, text, created, updated: updated ?? created };
+  const folder = str(x.folder, 64), order = fin(x.order);
+  if (folder) note.folder = folder;
+  if (order !== null) note.order = order;
+  return note;
 };
+
+const cleanFolder = (x: Obj): Folder | null => {
+  const id = str(x.id, 64), name = str(x.name, 60);
+  return id && name ? { id, name, created: fin(x.created) ?? Date.now() } : null;
+};
+
+const WIDGET_RE = /^(water|sleep|weight|mood|t:[\w-]{1,64})$/;
+function cleanWidgets(v: unknown): string[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  return [...new Set(v.filter((x): x is string => typeof x === "string" && WIDGET_RE.test(x)))];
+}
 
 const cleanExercise = (x: Obj): Exercise | null => {
   const name = str(x.name, 80);
@@ -118,6 +134,7 @@ export function parseBackup(text: string): Backup {
     exportedAt: fin(raw.exportedAt) ?? 0,
     data: {
       notes: arr(d.notes, cleanNote),
+      folders: arr(d.folders, cleanFolder),
       workouts: arr(d.workouts, cleanWorkout),
       habits: arr(d.habits, cleanHabit),
       metrics: cleanMetrics(d.metrics),
@@ -128,6 +145,7 @@ export function parseBackup(text: string): Backup {
         style: isCardStyle(s.style) ? s.style : DEFAULTS.settings.style,
         waterGoal: fin(s.waterGoal) ?? DEFAULTS.settings.waterGoal,
         joined: fin(s.joined) ?? 0,
+        widgets: cleanWidgets(s.widgets),
       },
     },
   };
@@ -172,6 +190,7 @@ export function mergeData(local: AppData, inc: UserData): AppData {
   return {
     ...local,
     notes: byId(local.notes, inc.notes, (a, b) => (b.updated > a.updated ? b : a)),
+    folders: byId(local.folders, inc.folders, (_a, b) => b),
     workouts: byId(local.workouts, inc.workouts, (a, b) => (!a.end || sets(b) > sets(a) ? b : a)),
     habits: byId(local.habits, inc.habits, (a, b) => ({ ...b, done: { ...a.done, ...b.done } })),
     trackers: byId(local.trackers, inc.trackers, (a, b) => ({ ...b, values: { ...a.values, ...b.values } })),
@@ -179,6 +198,11 @@ export function mergeData(local: AppData, inc: UserData): AppData {
     settings: {
       ...local.settings,
       joined: Math.min(local.settings.joined || Date.now(), inc.settings.joined || Date.now()),
+      // trackers new to this device show up on the main screen too
+      widgets: local.settings.widgets && [
+        ...local.settings.widgets,
+        ...inc.trackers.filter((t) => !local.trackers.some((x) => x.id === t.id)).map((t) => `t:${t.id}`),
+      ],
     },
   };
 }

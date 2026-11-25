@@ -1,6 +1,7 @@
-// "Поделиться": hold a tracker for ~0.5s (one listener for the whole app) or
-// tap a share button, pick "Квадрат" (for chats) or "Для сторис", and a clean
-// summary card of that tracker (shareCards.tsx) is sent as a picture.
+// "Поделиться": a tracker or card is shared from its hold menu (gestures.tsx):
+// pick "Квадрат" (for chats) or "Для сторис", and a clean summary card of that
+// tracker (shareCards.tsx) is sent as a picture. Notes are shared as text:
+// shareText() and copyText() at the end of this file.
 //
 // Square:
 // 1. bot server online (Telegram 8.0+): server keeps the picture for a day and
@@ -14,7 +15,7 @@
 
 import { domToJpeg, domToPng } from "modern-screenshot";
 import { api, blobToBase64, serverOnline } from "./api";
-import { canUse, haptic, inTelegram, tg } from "./telegram";
+import { canUse, haptic, hapticTick, inTelegram, tg } from "./telegram";
 import { toast } from "./ui";
 import { mountShareArt, specFor, type ShareFormat } from "./shareCards";
 
@@ -130,60 +131,60 @@ export function askAndShare(key: string) {
   shareTracker(key, window.confirm("Для сторис? (Отмена = квадрат)") ? "story" : "square");
 }
 
-// For share buttons inside a tracker card.
-export function shareFrom(button: EventTarget | null) {
-  const el = button instanceof HTMLElement ? button.closest<HTMLElement>("[data-share]") : null;
-  if (el?.dataset.share) askAndShare(el.dataset.share);
+// Menu item that shares a tracker or card as a picture.
+export const shareImageItem = (key: string) => ({
+  label: "Поделиться картинкой",
+  icon: "share" as const,
+  run: () => askAndShare(key),
+});
+
+// ---------- text: notes and folders ----------
+
+export async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // older webviews: hidden textarea + execCommand
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;opacity:0;left:-9999px";
+    document.body.append(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+  hapticTick();
+  toast("Скопировано");
 }
 
-// ---------- long press, once for the whole app ----------
-
-// only elements marked data-share (trackers) can be shared
-const NOT_SHAREABLE = "input, textarea, select, .sheet, .tabbar, .fab, .stepper, .editor, .segmented, .chips";
-const HOLD_MS = 500;
-let timer: number | undefined;
-let fired = false;
-let startX = 0;
-let startY = 0;
-
-function cancel() {
-  if (timer !== undefined) clearTimeout(timer);
-  timer = undefined;
-}
-
-function shareKeyAt(target: EventTarget | null): string | null {
-  if (!(target instanceof Element) || target.closest(NOT_SHAREABLE)) return null;
-  return target.closest<HTMLElement>("[data-share]")?.dataset.share ?? null;
-}
-
-export function installLongPressShare() {
-  document.addEventListener("pointerdown", (e) => {
-    fired = false;
-    cancel();
-    const key = shareKeyAt(e.target);
-    if (!key) return;
-    startX = e.clientX;
-    startY = e.clientY;
-    timer = window.setTimeout(() => {
-      timer = undefined;
-      fired = true;
-      askAndShare(key);
-    }, HOLD_MS);
-  });
-  document.addEventListener("pointermove", (e) => {
-    // scrolling is not a long press
-    if (Math.abs(e.clientX - startX) > 10 || Math.abs(e.clientY - startY) > 10) cancel();
-  });
-  for (const type of ["pointerup", "pointercancel"]) document.addEventListener(type, cancel);
-  // the tap that ended a long press must not also open/toggle things
-  document.addEventListener("click", (e) => {
-    if (!fired) return;
-    fired = false;
-    e.stopPropagation();
-    e.preventDefault();
-  }, true);
-  // no "copy / select" menu on a held tracker
-  document.addEventListener("contextmenu", (e) => {
-    if (shareKeyAt(e.target)) e.preventDefault();
-  });
+// Sends text to any chat. Best: Telegram's own dialog with an "Открыть" button
+// (needs the bot server, Telegram 8.0+, up to 1000 characters); then a
+// t.me/share link; outside Telegram the phone's share sheet or the clipboard.
+export async function shareText(text: string) {
+  const clean = text.trim();
+  if (!clean) return;
+  if (online() && canUse("8.0") && tg!.shareMessage && clean.length <= 1000) {
+    try {
+      const { id } = await api<{ id: string }>("/api/share", { text: clean });
+      tg!.shareMessage!(id);
+      return;
+    } catch (e) {
+      console.warn("share text via bot failed:", (e as Error).message);
+    }
+  }
+  if (inTelegram) {
+    const url = appLink || "https://t.me";
+    tg!.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(clean.slice(0, 3000))}`);
+    return;
+  }
+  if (navigator.share) {
+    try {
+      await navigator.share({ text: clean });
+      return;
+    } catch (e) {
+      if ((e as Error).name === "AbortError") return;
+    }
+  }
+  await copyText(clean);
 }
