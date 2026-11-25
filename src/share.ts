@@ -1,90 +1,70 @@
-// "Поделиться": send any card as a picture, exactly as it looks in the app.
+// "Поделиться": hold a tracker for ~0.5s (one listener for the whole app) or
+// tap a share button, pick "Квадрат" (for chats) or "Для сторис", and a clean
+// summary card of that tracker (shareCards.tsx) is sent as a picture.
 //
-// Hold a tracker for ~0.5s (one listener for the whole app),
-// or tap a share button. The card is copied into an off-screen frame (padding,
-// background, app name + bot link at the bottom) and turned into a JPEG.
-// Only the picture is sent, no separate text message:
-// 1. bot server online: the server keeps the picture for a day and prepares
-//    a photo message with an "Открыть" button; Telegram's own share dialog
-//    (WebApp.shareMessage, Telegram 8.0+) sends it to the chosen chat;
-// 2. otherwise the phone's share sheet with just the picture;
-// 3. if the phone can't share files: Telegram's "forward to…" dialog with
-//    the card's text and a link (the only case without a picture).
+// Square:
+// 1. bot server online (Telegram 8.0+): server keeps the picture for a day and
+//    prepares a photo message with an "Открыть" button, Telegram's own share
+//    dialog sends it (WebApp.shareMessage);
+// 2. otherwise the phone's share sheet with just the picture.
+// Story:
+// 1. bot server online (Telegram 7.8+): WebApp.shareToStory with the picture
+//    and a link to the app;
+// 2. otherwise the phone's share sheet (save it, then post it as a story).
 
 import { domToJpeg, domToPng } from "modern-screenshot";
 import { api, blobToBase64, serverOnline } from "./api";
 import { canUse, haptic, inTelegram, tg } from "./telegram";
 import { toast } from "./ui";
+import { mountShareArt, specFor, type ShareFormat } from "./shareCards";
 
 const BOT: string = (import.meta.env.VITE_BOT_USERNAME ?? "").replace(/^@/, "");
 
 // opens the bot's main Mini App
 export const appLink = BOT ? `https://t.me/${BOT}?startapp` : "";
 
-// Only trackers can be shared: day rings, body tiles, habits, custom
-// trackers, gym stats and workouts, and cards marked "shareable" (progress
-// charts, gym visits). Hints, banners, notes and settings can't.
-// closest() picks the innermost match: a tile is shared alone.
-const SHAREABLE = [".hero", ".tile", ".tracker", ".habit", ".stat-row", ".history", ".shareable"].join(", ");
+// card size in CSS px; pictures are 3x: 1080×1080 and 1080×1920
+const SCALE = 3;
 
-// never start a share from these
-const NOT_SHAREABLE = "input, textarea, select, .sheet, .tabbar, .fab, .stepper, .editor, .segmented, .chips";
+// ---------- picture ----------
 
-// ---------- picture of a card ----------
-
-// Telegram resizes photos to 1280 px on the longest side and re-encodes them.
-// Rendering exactly 1280 px avoids the resize, PNG avoids a second lossy step.
-const TELEGRAM_PHOTO_PX = 1280;
-
-type Format = "png" | "jpeg";
-
-async function cardImage(el: HTMLElement, format: Format): Promise<Blob> {
-  const width = Math.round(el.getBoundingClientRect().width);
-  const frame = document.createElement("div");
-  frame.className = "share-frame";
-  frame.style.width = `${width + 40}px`;
-
-  const copy = el.cloneNode(true) as HTMLElement;
-  // single rows (habit, tracker) look better inside a card
-  const body = el.matches(".habit, .tracker") ? wrapInCard(copy) : copy;
-  const footer = document.createElement("div");
-  footer.className = "share-frame-foot";
-  footer.innerHTML = `<b>🧠 Второй мозг</b>${BOT ? `<span>t.me/${BOT}</span>` : ""}`;
-  frame.append(body, footer);
-  document.body.append(frame);
-
+async function picture(key: string, format: ShareFormat, type: "png" | "jpeg"): Promise<Blob | null> {
+  const spec = specFor(key);
+  if (!spec) return null;
+  const { el, done } = await mountShareArt(spec, format);
   try {
     const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#f2f2f7";
-    const box = frame.getBoundingClientRect();
-    const scale = TELEGRAM_PHOTO_PX / Math.max(box.width, box.height);
-    const dataUrl = format === "png"
-      ? await domToPng(frame, { scale, backgroundColor: bg })
-      : await domToJpeg(frame, { scale, quality: 0.95, backgroundColor: bg });
-    return await (await fetch(dataUrl)).blob();
+    const url = type === "png"
+      ? await domToPng(el, { scale: SCALE, backgroundColor: bg })
+      : await domToJpeg(el, { scale: SCALE, quality: 0.95, backgroundColor: bg });
+    return await (await fetch(url)).blob();
   } finally {
-    frame.remove();
+    done();
   }
-}
-
-function wrapInCard(node: HTMLElement): HTMLElement {
-  const card = document.createElement("section");
-  card.className = "card";
-  card.append(node);
-  return card;
 }
 
 // ---------- sending ----------
 
-const botShareAvailable = () => serverOnline.value && canUse("8.0") && !!tg!.shareMessage;
+const online = () => serverOnline.value && inTelegram;
 
-// Telegram's photo results need a JPEG
-async function viaBot(image: Blob): Promise<boolean> {
+async function squareViaBot(image: Blob): Promise<boolean> {
   try {
     const { id } = await api<{ id: string }>("/api/share-photo", { image: await blobToBase64(image) });
     tg!.shareMessage!(id);
     return true;
   } catch (e) {
     console.warn("share via bot failed:", (e as Error).message);
+    return false;
+  }
+}
+
+async function storyViaTelegram(image: Blob): Promise<boolean> {
+  try {
+    const { url } = await api<{ url: string }>("/api/story-image", { image: await blobToBase64(image) });
+    tg!.shareToStory!(url, appLink ? { widget_link: { url: appLink, name: "Второй мозг" } } : undefined);
+    return true;
+  } catch (e) {
+    console.warn("story via telegram failed:", (e as Error).message);
     return false;
   }
 }
@@ -100,42 +80,66 @@ async function viaShareSheet(image: Blob): Promise<boolean> {
   return true;
 }
 
-function shareText(text: string) {
-  if (!appLink) return toast("Не получилось поделиться");
-  const message = `${text.trim().slice(0, 900)}\n\nВторой мозг 🧠`;
-  const url = `https://t.me/share/url?url=${encodeURIComponent(appLink)}&text=${encodeURIComponent(message)}`;
-  if (inTelegram) tg!.openTelegramLink(url);
-  else window.open(url, "_blank", "noopener");
-}
-
-// what the card says, for the last fallback
-const textOf = (el: HTMLElement) => el.innerText.replace(/\n{2,}/g, "\n").trim();
-
 let busy = false;
 
-export async function shareCard(el: HTMLElement | null) {
-  if (!el || busy) return;
+export async function shareTracker(key: string, format: ShareFormat) {
+  if (busy) return;
   busy = true;
-  haptic("medium");
   try {
-    if (botShareAvailable() && (await viaBot(await cardImage(el, "jpeg")))) return;
-    if (await viaShareSheet(await cardImage(el, "png"))) return;
-    shareText(textOf(el));
+    if (format === "square" && online() && canUse("8.0") && tg!.shareMessage) {
+      const jpeg = await picture(key, format, "jpeg");
+      if (jpeg && (await squareViaBot(jpeg))) return;
+    }
+    if (format === "story" && online() && canUse("7.8") && tg!.shareToStory) {
+      const jpeg = await picture(key, format, "jpeg");
+      if (jpeg && (await storyViaTelegram(jpeg))) return;
+    }
+    const png = await picture(key, format, "png");
+    if (!png) return;
+    if (!(await viaShareSheet(png))) toast("Этот телефон не умеет делиться картинками");
   } catch (e) {
     console.warn("share failed:", (e as Error).message);
-    shareText(textOf(el));
+    toast("Не получилось поделиться");
   } finally {
     busy = false;
   }
 }
 
-// For share buttons: share the closest element matching `selector`.
-export function shareFrom(button: EventTarget | null, selector: string) {
-  shareCard(button instanceof HTMLElement ? button.closest<HTMLElement>(selector) : null);
+// Ask "square or story", then share.
+export function askAndShare(key: string) {
+  if (!specFor(key)) return;
+  haptic("medium");
+  if (canUse("6.2") && tg!.showPopup) {
+    tg!.showPopup!(
+      {
+        title: "Поделиться",
+        message: "Картинка для чата или для сторис?",
+        buttons: [
+          { id: "square", type: "default", text: "Квадрат" },
+          { id: "story", type: "default", text: "Для сторис" },
+          { type: "cancel" },
+        ],
+      },
+      (id) => {
+        if (id === "square" || id === "story") shareTracker(key, id);
+      },
+    );
+    return;
+  }
+  // outside Telegram (dev): confirm() as a simple chooser
+  shareTracker(key, window.confirm("Для сторис? (Отмена = квадрат)") ? "story" : "square");
+}
+
+// For share buttons inside a tracker card.
+export function shareFrom(button: EventTarget | null) {
+  const el = button instanceof HTMLElement ? button.closest<HTMLElement>("[data-share]") : null;
+  if (el?.dataset.share) askAndShare(el.dataset.share);
 }
 
 // ---------- long press, once for the whole app ----------
 
+// only elements marked data-share (trackers) can be shared
+const NOT_SHAREABLE = "input, textarea, select, .sheet, .tabbar, .fab, .stepper, .editor, .segmented, .chips";
 const HOLD_MS = 500;
 let timer: number | undefined;
 let fired = false;
@@ -147,23 +151,23 @@ function cancel() {
   timer = undefined;
 }
 
-function shareableAt(target: EventTarget | null): HTMLElement | null {
+function shareKeyAt(target: EventTarget | null): string | null {
   if (!(target instanceof Element) || target.closest(NOT_SHAREABLE)) return null;
-  return target.closest<HTMLElement>(SHAREABLE);
+  return target.closest<HTMLElement>("[data-share]")?.dataset.share ?? null;
 }
 
 export function installLongPressShare() {
   document.addEventListener("pointerdown", (e) => {
     fired = false;
     cancel();
-    const el = shareableAt(e.target);
-    if (!el) return;
+    const key = shareKeyAt(e.target);
+    if (!key) return;
     startX = e.clientX;
     startY = e.clientY;
     timer = window.setTimeout(() => {
       timer = undefined;
       fired = true;
-      shareCard(el);
+      askAndShare(key);
     }, HOLD_MS);
   });
   document.addEventListener("pointermove", (e) => {
@@ -178,8 +182,8 @@ export function installLongPressShare() {
     e.stopPropagation();
     e.preventDefault();
   }, true);
-  // no "copy / select" menu on a held card
+  // no "copy / select" menu on a held tracker
   document.addEventListener("contextmenu", (e) => {
-    if (shareableAt(e.target)) e.preventDefault();
+    if (shareKeyAt(e.target)) e.preventDefault();
   });
 }

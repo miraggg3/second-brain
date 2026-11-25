@@ -179,14 +179,14 @@ function Overview() {
         </span>
       </button>
 
-      <div class="stat-row">
+      <div class="stat-row" data-share="gym">
         <div class="stat"><b>{week}</b><small>на неделе</small></div>
         <div class="stat"><b>{month}</b><small>за месяц</small></div>
         <div class="stat"><b>{streak}<Icon name="flame" size={16} /></b><small>{plural(streak, "неделя", "недели", "недель")} подряд</small></div>
       </div>
 
-      <Card class="shareable" title="Посещения" icon="today" action={
-        <button class="icon-btn" aria-label="Поделиться" onClick={(e) => shareFrom(e.currentTarget, ".card")}><Icon name="share" size={19} /></button>}>
+      <Card share="gym" title="Посещения" icon="today" action={
+        <button class="icon-btn" aria-label="Поделиться" onClick={(e) => shareFrom(e.currentTarget)}><Icon name="share" size={19} /></button>}>
         <Heatmap levelOf={(d) => Math.min(3, (perDay[d] ?? 0) * 2)} color="var(--c-gym)" />
         <div class="heat-legend"><span>меньше</span><i class="l0" /><i class="l1" /><i class="l2" /><i class="l3" /><span>больше</span></div>
       </Card>
@@ -196,7 +196,7 @@ function Overview() {
         const d = new Date(w.start);
         const open = openId === w.id;
         return (
-          <div key={w.id} class={`history card ${open ? "open" : ""}`}>
+          <div key={w.id} class={`history card ${open ? "open" : ""}`} data-share={`workout:${w.id}`}>
             <button class="history-head" onClick={() => setOpenId(open ? null : w.id)}>
               <span class="date-badge">
                 <b>{d.getDate()}</b>
@@ -219,7 +219,7 @@ function Overview() {
                   </div>
                 ))}
                 <div class="row-actions">
-                  <button class="text-btn" onClick={(e) => shareFrom(e.currentTarget, ".history")}><Icon name="share" size={16} /> Поделиться</button>
+                  <button class="text-btn" onClick={(e) => shareFrom(e.currentTarget)}><Icon name="share" size={16} /> Поделиться</button>
                   <button class="text-btn danger" onClick={() => remove(w.id)}><Icon name="trash" size={16} /> Удалить</button>
                 </div>
               </div>

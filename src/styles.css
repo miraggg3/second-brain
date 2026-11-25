@@ -928,35 +928,75 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px) scale(.96); } }
 
 /* ---------- long press to share ---------- */
-/* no iOS text selection / callout menu while holding a shareable item */
-.hero, .tile, .tracker, .habit, .stat-row, .history, .shareable {
+/* no iOS text selection / callout menu while holding a tracker */
+[data-share] {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
 }
-.shareable input, .shareable textarea { -webkit-user-select: text; user-select: text; }
+[data-share] input, [data-share] textarea { -webkit-user-select: text; user-select: text; }
 
-/* ---------- picture for sharing (off-screen, see share.ts) ---------- */
-.share-frame {
-  position: fixed; left: -10000px; top: 0;
-  padding: 20px 20px 16px;
+/* ---------- share pictures (off-screen, see shareCards.tsx) ----------
+   360×360 / 360×640 CSS px, rendered at 3x: 1080×1080 and 1080×1920. */
+.share-art-host { position: fixed; left: -10000px; top: 0; }
+.share-art {
+  width: 360px; height: 360px;
+  display: flex; flex-direction: column;
+  padding: 18px;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
+  letter-spacing: -0.01em;
 }
-.share-frame > .card, .share-frame > .stat-row, .share-frame > .achievement,
-.share-frame > .profile-stats, .share-frame > .note, .share-frame > .achievements { margin: 0; }
-.share-frame .row-actions, .share-frame .card-head .icon-btn, .share-frame .chev { display: none !important; }
-.share-frame .achievements {
-  grid-auto-flow: row; grid-template-columns: repeat(2, 1fr);
-  overflow: visible; margin: 0; padding: 0;
+.share-art.story { height: 640px; padding: 28px 22px; }
+.sa-card {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 22px;
+  border-radius: 28px;
+  background: var(--card);
+  overflow: hidden;
 }
-.share-frame-foot {
+.share-art.story .sa-card { justify-content: center; gap: 12px; padding: 28px 24px; border-radius: 34px; }
+.sa-head { display: flex; align-items: center; gap: 10px; font-size: 17px; }
+.sa-head b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sa-emoji {
+  width: 38px; height: 38px; border-radius: 12px; flex: none;
+  display: grid; place-items: center; font-size: 21px;
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+}
+.sa-value { margin-top: 6px; font-size: 56px; font-weight: 750; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.sa-value small { font-size: 18px; font-weight: 550; color: var(--muted); letter-spacing: 0; }
+.share-art.story .sa-value { font-size: 84px; }
+.share-art.story .sa-value small { font-size: 22px; }
+.sa-sub { font-size: 15px; color: var(--muted); }
+.share-art.story .sa-sub { font-size: 18px; }
+.sa-chart { margin-top: auto; color: var(--c); }
+.share-art.story .sa-chart { margin-top: 18px; }
+.sa-chart small { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); text-align: right; }
+.sa-bars rect.on { fill: currentColor; opacity: .55; }
+.sa-bars rect.on.last { opacity: 1; }
+.sa-bars rect.off { fill: color-mix(in srgb, var(--muted) 22%, transparent); }
+.sa-lines { list-style: none; margin: auto 0 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+.sa-lines li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.share-art.story .sa-lines { margin-top: 18px; font-size: 17px; gap: 10px; }
+.sa-badge {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 6px 12px; border-radius: 999px;
+  font-size: 13px; font-weight: 600;
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+}
+.share-art.story .sa-badge { font-size: 16px; padding: 8px 14px; }
+.sa-foot {
   display: flex; justify-content: space-between; align-items: center;
-  margin-top: 14px; padding: 0 4px;
-  font-size: 13px; color: var(--muted);
+  padding: 12px 6px 0;
+  font-size: 12px; color: var(--muted);
 }
-.share-frame-foot b { color: var(--text); font-weight: 600; }
+.sa-foot b { color: var(--text); font-weight: 600; font-size: 13px; }
+.share-art.story .sa-foot { font-size: 14px; padding-top: 18px; }
+.share-art.story .sa-foot b { font-size: 16px; }
 
 /* ---------- opened outside Telegram ---------- */
 

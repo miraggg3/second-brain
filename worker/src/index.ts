@@ -7,6 +7,7 @@
 // - POST /api/download   one-time link for Telegram's native "download file" dialog
 // - POST /api/share      prepared message with an "Открыть" button for WebApp.shareMessage
 // - POST /api/share-photo the same with a picture of a card (kept one day in KV)
+// - POST /api/story-image picture for WebApp.shareToStory (public URL, one day)
 // - GET  /img/<id>.jpg   that picture, for Telegram
 // - GET  /dl/<token>/... serves that file once, then forgets it (kept at most 5 minutes)
 // - POST /bot            Telegram webhook (payments, /start, /paysupport, /terms, /refund)
@@ -255,23 +256,20 @@ async function handleApi(req: Request, env: Env, path: string, origin: string): 
     return json(200, { id: prepared.id });
   }
 
+  if (path === "/api/story-image") {
+    // picture for WebApp.shareToStory, which needs a public URL
+    const stored = await storeImage(env, body.image, origin);
+    if (stored instanceof Response) return stored;
+    return json(200, { url: stored.url });
+  }
+
   if (path === "/api/share-photo") {
     // picture of a card: kept one day so Telegram can fetch it, then sent
     // by the user through WebApp.shareMessage as a photo with a button
-    const { image, caption } = body;
-    if (typeof image !== "string") return json(400, { error: "bad image" });
-    let bytes: Uint8Array;
-    try {
-      bytes = Uint8Array.from(atob(image), (c) => c.charCodeAt(0));
-    } catch {
-      return json(400, { error: "bad image" });
-    }
-    // JPEG only (starts with FF D8), at most 2 MB
-    if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return json(400, { error: "not jpeg" });
-    if (bytes.length > MAX_IMAGE) return json(413, { error: "too big" });
-    const token = crypto.randomUUID();
-    await env.DB.put(`img:${token}`, bytes, { expirationTtl: DAY / 1000 });
-    const url = `${origin}/img/${token}.jpg`;
+    const { caption } = body;
+    const stored = await storeImage(env, body.image, origin);
+    if (stored instanceof Response) return stored;
+    const { token, url } = stored;
     const prepared = await tg<{ id: string }>(env, "savePreparedInlineMessage", {
       user_id: user.id,
       result: {
@@ -290,6 +288,23 @@ async function handleApi(req: Request, env: Env, path: string, origin: string): 
   }
 
   return json(404, { error: "not found" });
+}
+
+// Keeps a shared picture (base64 JPEG, at most 2 MB) one day in KV.
+async function storeImage(env: Env, image: unknown, origin: string): Promise<{ token: string; url: string } | Response> {
+  if (typeof image !== "string") return json(400, { error: "bad image" });
+  let bytes: Uint8Array;
+  try {
+    bytes = Uint8Array.from(atob(image), (c) => c.charCodeAt(0));
+  } catch {
+    return json(400, { error: "bad image" });
+  }
+  // JPEG only (starts with FF D8)
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return json(400, { error: "not jpeg" });
+  if (bytes.length > MAX_IMAGE) return json(413, { error: "too big" });
+  const token = crypto.randomUUID();
+  await env.DB.put(`img:${token}`, bytes, { expirationTtl: DAY / 1000 });
+  return { token, url: `${origin}/img/${token}.jpg` };
 }
 
 async function handleImage(env: Env, path: string): Promise<Response> {

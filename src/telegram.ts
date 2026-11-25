@@ -50,6 +50,15 @@ export interface TgWebApp {
   openTelegramLink(url: string): void;
   downloadFile?(params: { url: string; file_name: string }, cb?: (accepted: boolean) => void): void;
   shareMessage?(msgId: string, cb?: (sent: boolean) => void): void; // Telegram 8.0+
+  shareToStory?(mediaUrl: string, params?: { text?: string; widget_link?: { url: string; name?: string } }): void; // 7.8+
+  showPopup?(
+    params: {
+      title?: string;
+      message: string;
+      buttons?: { id?: string; type?: "default" | "ok" | "close" | "cancel" | "destructive"; text?: string }[];
+    },
+    cb?: (buttonId: string) => void,
+  ): void; // 6.2+
   BackButton: { show(): void; hide(): void; onClick(cb: () => void): void };
   HapticFeedback: {
     impactOccurred(style: "light" | "medium" | "heavy" | "rigid" | "soft"): void;
