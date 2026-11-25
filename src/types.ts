@@ -44,8 +44,8 @@ export interface Tracker {
   values: DayValues;
 }
 
-export type ThemeId = "auto" | "snow" | "midnight" | "telegram" | "ocean" | "forest" | "sakura" | "mint" | "neon";
-export type CardStyle = "soft" | "glass" | "outline";
+export type ThemeId = "auto" | "light" | "dark" | "snow" | "midnight" | "telegram" | "ocean" | "forest" | "sakura" | "mint" | "neon";
+export type CardStyle = "clean" | "soft" | "glass" | "outline";
 
 export interface Settings {
   theme: ThemeId;
@@ -53,6 +53,7 @@ export interface Settings {
   waterGoal: number;
   lastBackup: number; // 0 = never
   joined: number; // first launch on this device
+  design?: number; // design version the settings were last migrated to
 }
 
 export interface Premium {

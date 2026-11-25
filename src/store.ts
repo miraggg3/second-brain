@@ -6,13 +6,16 @@ import type { AppData, DataKey } from "./types";
 import { loadKey, removeKey, saveKey } from "./storage";
 import { toast } from "./ui";
 
+// Bump when the default look changes; loadAll() moves people who never picked a style.
+const DESIGN_VERSION = 2;
+
 export const DEFAULTS: AppData = {
   notes: [],
   workouts: [],
   habits: [],
   metrics: { water: {}, sleep: {}, mood: {}, weight: {} },
   trackers: [],
-  settings: { theme: "auto", style: "soft", waterGoal: 2000, lastBackup: 0, joined: 0 },
+  settings: { theme: "auto", style: "clean", waterGoal: 2000, lastBackup: 0, joined: 0, design: DESIGN_VERSION },
   premium: { until: 0, lifetime: false },
 };
 
@@ -35,10 +38,18 @@ export async function loadAll() {
     const raw = await loadKey<unknown>(key, null);
     (next as Record<DataKey, unknown>)[key] = withDefaults(key, raw);
   }
+  let settingsChanged = false;
   if (!next.settings.joined) {
     next.settings = { ...next.settings, joined: Date.now() };
-    saveKey("settings", next.settings).catch(() => undefined);
+    settingsChanged = true;
   }
+  if ((next.settings.design ?? 1) < DESIGN_VERSION) {
+    // "soft" was the old default: switch it to the new default, keep explicit choices
+    const style = next.settings.style === "soft" ? "clean" : next.settings.style;
+    next.settings = { ...next.settings, style, design: DESIGN_VERSION };
+    settingsChanged = true;
+  }
+  if (settingsChanged) saveKey("settings", next.settings).catch(() => undefined);
   data.value = next;
   loaded.value = true;
 }

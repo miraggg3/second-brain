@@ -10,8 +10,8 @@ import { haptic } from "../telegram";
 
 function ThemeSwatch({ id }: { id: ThemeId }) {
   const s = data.value.settings;
-  const p = id === "auto" ? PALETTES.snow : paletteOf(id);
-  const dark = id === "auto" ? PALETTES.midnight : null;
+  const p = id === "auto" ? PALETTES.light : paletteOf(id);
+  const dark = id === "auto" ? PALETTES.dark : null;
   const locked = themeIsPremium(id) && !isPremium.value;
 
   const pick = () => {

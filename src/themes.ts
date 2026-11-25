@@ -17,6 +17,17 @@ export interface Palette {
 }
 
 export const PALETTES: Record<Exclude<ThemeId, "auto" | "telegram">, Palette> = {
+  // calm neutral palettes for the default "clean" style: one accent, no gradient
+  light: {
+    name: "Светлая", dark: false, premium: false,
+    bg: "#F2F2F7", card: "#FFFFFF", raised: "#EDEDF0", text: "#000000", muted: "#8A8A8E",
+    accent: "#007AFF", accent2: "#007AFF", onAccent: "#FFFFFF",
+  },
+  dark: {
+    name: "Тёмная", dark: true, premium: false,
+    bg: "#000000", card: "#1C1C1E", raised: "#2C2C2E", text: "#FFFFFF", muted: "#8D8D93",
+    accent: "#0A84FF", accent2: "#0A84FF", onAccent: "#FFFFFF",
+  },
   snow: {
     name: "Снег", dark: false, premium: false,
     bg: "#F3F4F8", card: "#FFFFFF", raised: "#F1F2F7", text: "#14151C", muted: "#868AA0",
@@ -54,7 +65,7 @@ export const PALETTES: Record<Exclude<ThemeId, "auto" | "telegram">, Palette> = 
   },
 };
 
-export const THEME_ORDER: ThemeId[] = ["auto", "snow", "midnight", "telegram", "ocean", "forest", "sakura", "mint", "neon"];
+export const THEME_ORDER: ThemeId[] = ["auto", "light", "dark", "snow", "midnight", "telegram", "ocean", "forest", "sakura", "mint", "neon"];
 
 export const THEME_INFO: Record<"auto" | "telegram", { name: string; premium: boolean }> = {
   auto: { name: "Авто", premium: false },
@@ -70,6 +81,7 @@ export function themeIsPremium(id: ThemeId): boolean {
 }
 
 export const STYLES: { id: CardStyle; name: string; note: string; premium: boolean }[] = [
+  { id: "clean", name: "Чистый", note: "системный шрифт, списки и тонкие линии", premium: false },
   { id: "soft", name: "Мягкий", note: "заливка и лёгкая тень", premium: false },
   { id: "outline", name: "Контур", note: "тонкие линии, без теней", premium: false },
   { id: "glass", name: "Стекло", note: "полупрозрачные карточки на цветном фоне", premium: true },
