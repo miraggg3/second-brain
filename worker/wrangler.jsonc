@@ -13,7 +13,7 @@
   "vars": {
     "WEBAPP_URL": "https://miraggg3.github.io/second-brain/",
     // your Telegram user id: enables /refund <user_id> <charge_id>
-    "ADMIN_ID": ""
+    "ADMIN_ID": "8958919800"
   }
   // secrets (not in this file): BOT_TOKEN, WEBHOOK_SECRET
   //   npx wrangler secret put BOT_TOKEN
