@@ -10,15 +10,17 @@ import type { ComponentChildren } from "preact";
 import { data, isPremium, update } from "../store";
 import type { Habit, MetricKind, Tracker } from "../types";
 import { activeWorkout, habitStreak, lastValue, weekStreak, workoutsSince } from "../domain";
-import { dayKey, newId, num, parseNum, startOfWeek } from "../utils";
+import { dayKey, daysAgo, newId, num, parseNum, startOfWeek } from "../utils";
 import { locale, t } from "../i18n";
-import { ask, Avatar, Card, Empty, Icon, Ring, type IconName } from "../ui";
-import { confirmAsk, haptic, hapticOk, tgUser } from "../telegram";
+import { ask, Avatar, Card, Empty, Icon, Ring, toast, type IconName } from "../ui";
+import { confirmAsk, haptic, hapticOk, inTelegram, tgUser } from "../telegram";
 import { FREE_HABITS, requirePremium } from "../premium";
 import { goTab, openOverlay } from "../nav";
 import { moveById, moveKey, useHold, type MenuItem } from "../gestures";
 import { shareImageItem } from "../share";
 import { startWorkout } from "./Gym";
+import { reportHabitDone } from "../reminders";
+import { serverOnline } from "../api";
 
 export const MOODS = [
   { emoji: "😫", get label() { return t("today.mood1"); } },
@@ -65,15 +67,41 @@ async function addHabit() {
   update("habits", (hs) => [...hs, h]);
 }
 
-function toggleHabit(id: string) {
-  const today = dayKey();
+function toggleHabit(id: string, day = dayKey()) {
   update("habits", (hs) => hs.map((h) => {
     if (h.id !== id) return h;
     const done = { ...h.done };
-    if (done[today]) delete done[today];
-    else { done[today] = true; hapticOk(); }
+    const now = !done[day];
+    if (now) { done[day] = true; hapticOk(); } else delete done[day];
+    reportHabitDone(h, day, now);
     return { ...h, done };
   }));
+}
+
+// ---------- reminders from the bot ----------
+
+async function setReminder(h: Habit) {
+  if (!inTelegram) return toast(t("today.reminderNeedsBot"));
+  if (!serverOnline.value) return toast(t("premium.serverOffline"));
+  const v = await ask({
+    title: t("today.reminderTitle"),
+    note: t("today.reminderNote"),
+    fields: [{ name: "time", label: t("today.reminderTime"), type: "time", value: h.remind ?? "09:00" }],
+  });
+  const time = v?.time;
+  if (!time || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return;
+  update("habits", (hs) => hs.map((x) => (x.id === h.id ? { ...x, remind: time } : x)));
+  hapticOk();
+  toast(t("today.reminderSet", { time }));
+}
+
+function removeReminder(h: Habit) {
+  update("habits", (hs) => hs.map((x) => {
+    if (x.id !== h.id) return x;
+    const { remind: _r, ...rest } = x;
+    return rest;
+  }));
+  toast(t("today.reminderRemoved"));
 }
 
 async function editHabit(h: Habit) {
@@ -100,6 +128,12 @@ function HabitRow({ h }: { h: Habit }) {
     menu: () => [
       shareImageItem(`habit:${h.id}`),
       { label: done ? t("today.uncheck") : t("today.checkToday"), icon: "check", run: () => toggleHabit(h.id) },
+      {
+        label: h.done[dayKey(daysAgo(1))] ? t("today.uncheckYesterday") : t("today.checkYesterday"),
+        icon: "today", run: () => toggleHabit(h.id, dayKey(daysAgo(1))),
+      },
+      { label: h.remind ? t("today.reminderAt", { time: h.remind }) : t("today.reminder"), icon: "bell", run: () => setReminder(h) },
+      ...(h.remind ? [{ label: t("today.reminderOff"), icon: "bellOff" as const, run: () => removeReminder(h) }] : []),
       { label: t("common.edit"), icon: "edit", run: () => editHabit(h) },
       { label: t("common.delete"), icon: "trash", danger: true, run: () => deleteHabit(h) },
     ],
@@ -110,7 +144,10 @@ function HabitRow({ h }: { h: Habit }) {
       <span class="habit-emoji">{h.emoji || "✨"}</span>
       <span class="habit-text">
         <b>{h.name}</b>
-        <small>{streak > 0 ? <><Icon name="flame" size={13} /> {t("today.habitStreak", { n: streak })}</> : t("today.startStreak")}</small>
+        <small>
+          {streak > 0 ? <><Icon name="flame" size={13} /> {t("today.habitStreak", { n: streak })}</> : t("today.startStreak")}
+          {h.remind && <span class="habit-bell"><Icon name="bell" size={12} /> {h.remind}</span>}
+        </small>
       </span>
       <button class="check" aria-label={done ? t("today.uncheck") : t("today.check")} onClick={() => toggleHabit(h.id)}><Icon name="check" size={18} stroke={3} /></button>
     </div>
@@ -309,6 +346,16 @@ function shareKeyOf(id: string): string {
   return id.startsWith("t:") ? `tracker:${id.slice(2)}` : `metric:${id}`;
 }
 
+// daily water goal: asked from the water widget, where people look for it
+export async function setWaterGoal() {
+  const v = await ask({
+    title: t("profile.waterGoal"),
+    fields: [{ name: "v", label: t("profile.perDay"), type: "number", step: "0.25", value: data.value.settings.waterGoal / 1000, suffix: t("unit.l") }],
+  });
+  const n = v ? parseNum(v.v) : null;
+  if (n && n > 0 && n <= 10) update("settings", (s) => ({ ...s, waterGoal: Math.round(n * 1000) }));
+}
+
 function WidgetSlot({ id, children }: { id: string; children: ComponentChildren }) {
   const editing = widgetEditing.value;
   const tracker = id.startsWith("t:") ? data.value.trackers.find((t) => `t:${t.id}` === id) : undefined;
@@ -316,6 +363,7 @@ function WidgetSlot({ id, children }: { id: string; children: ComponentChildren 
     menu: () => {
       const items: MenuItem[] = [
         shareImageItem(shareKeyOf(id)),
+        ...(id === "water" ? [{ label: t("profile.waterGoal"), icon: "drop" as const, run: setWaterGoal }] : []),
         { label: t("today.hideWidget"), icon: "eyeOff", run: () => hideWidget(id) },
         { label: t("today.editWidgets"), icon: "grid", run: () => (widgetEditing.value = true) },
       ];
@@ -376,7 +424,7 @@ function BodyWidgets() {
   const shown = shownWidgets();
   return (
     <>
-      <div class="section-row">
+      <div class="section-row" id="body-widgets">
         <h2 class="section-title">{t("today.body")}</h2>
         <button class="text-btn" onClick={() => { haptic(); widgetEditing.value = !editing; }}>
           {editing ? t("common.done") : t("common.edit")}
@@ -408,6 +456,33 @@ function BodyWidgets() {
   );
 }
 
+// ---------- first steps ----------
+
+function scrollToId(id: string) {
+  haptic();
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// shown until closed: the gestures are not discoverable on their own
+function TipsCard() {
+  const tips: [IconName, string][] = [
+    ["sparkle", t("today.tip1")],
+    ["transfer", t("today.tip2")],
+    ["bell", t("today.tip3")],
+  ];
+  return (
+    <section class="card tips">
+      <div class="card-head">
+        <h2><Icon name="sparkle" size={18} />{t("today.tipsTitle")}</h2>
+      </div>
+      {tips.map(([icon, text]) => (
+        <p key={icon} class="tip"><span class="tip-ico"><Icon name={icon} size={17} /></span>{text}</p>
+      ))}
+      <button class="btn block ghost" onClick={() => update("settings", (s) => ({ ...s, tipsSeen: true }))}>{t("today.tipsOk")}</button>
+    </section>
+  );
+}
+
 // ---------- day card ----------
 
 function DayHero() {
@@ -420,19 +495,19 @@ function DayHero() {
   const ref = useHold<HTMLElement>({ menu: () => [shareImageItem("day")] });
   return (
     <section ref={ref} class="hero" data-share="day">
-      <div class="hero-ring">
+      <div class="hero-ring" role="button" tabIndex={0} onClick={() => scrollToId("habits-card")}>
         <Ring value={d.habits.length ? habitsDone / d.habits.length : 0} color="var(--on-accent)" size={74} stroke={8}>
           <b>{habitsDone}/{d.habits.length}</b>
         </Ring>
         <span>{t("today.habits")}</span>
       </div>
-      <div class="hero-ring">
+      <div class="hero-ring" role="button" tabIndex={0} onClick={() => scrollToId("body-widgets")}>
         <Ring value={water / goal} color="var(--on-accent)" size={74} stroke={8}>
           <b>{Math.round((water / goal) * 100)}%</b>
         </Ring>
         <span>{t("today.water")}</span>
       </div>
-      <div class="hero-ring">
+      <div class="hero-ring" role="button" tabIndex={0} onClick={() => editMetric("sleep")}>
         <Ring value={sleep / 8} color="var(--on-accent)" size={74} stroke={8}>
           <b>{sleep ? num(sleep) : "—"}</b>
         </Ring>
@@ -451,7 +526,9 @@ export function Today() {
   const week = workoutsSince(d.workouts, startOfWeek()).length;
   const streak = weekStreak(d.workouts);
   const hasData = d.notes.length + d.workouts.length + d.habits.length > 0;
-  const backupOld = hasData && Date.now() - d.settings.lastBackup > 14 * DAY;
+  // not on the first days: a newcomer has nothing worth backing up yet
+  const usedForAWeek = Date.now() - (d.settings.joined || Date.now()) > 7 * DAY;
+  const backupOld = hasData && usedForAWeek && Date.now() - d.settings.lastBackup > 14 * DAY;
 
   return (
     <>
@@ -468,6 +545,8 @@ export function Today() {
 
       <DayHero />
 
+      {!d.settings.tipsSeen && <TipsCard />}
+
       {backupOld && (
         <button class="banner" onClick={() => openOverlay({ name: "data" })}>
           <span class="banner-ico"><Icon name="shield" size={20} /></span>
@@ -476,7 +555,7 @@ export function Today() {
         </button>
       )}
 
-      <Card title={t("today.habits")}>
+      <Card title={t("today.habits")} id="habits-card">
         {d.habits.map((h) => <HabitRow key={h.id} h={h} />)}
         {!d.habits.length && <Empty icon="flame">{t("today.habitsEmpty")}</Empty>}
         <button class="add-row" onClick={addHabit}><Icon name="plus" size={18} /> {t("today.newHabit")}</button>

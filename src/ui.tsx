@@ -28,7 +28,7 @@ export function Toast() {
 export interface Field {
   name: string;
   label: string;
-  type?: "text" | "number";
+  type?: "text" | "number" | "time";
   value?: string | number;
   placeholder?: string;
   step?: string;
@@ -37,6 +37,7 @@ export interface Field {
 
 interface SheetState {
   title: string;
+  note?: string;
   ok: string;
   fields: Field[];
   resolve: (v: Record<string, string> | null) => void;
@@ -45,7 +46,7 @@ interface SheetState {
 export const sheet = signal<SheetState | null>(null);
 
 // Resolves to { name: value } or null when cancelled.
-export function ask(opts: { title: string; fields: Field[]; ok?: string }) {
+export function ask(opts: { title: string; fields: Field[]; ok?: string; note?: string }) {
   return new Promise<Record<string, string> | null>((resolve) => {
     sheet.value = { ok: t("common.save"), ...opts, resolve };
   });
@@ -76,6 +77,7 @@ export function Sheet() {
       <form class="sheet" ref={form} onSubmit={submit}>
         <div class="sheet-grip" />
         <h3>{s.title}</h3>
+        {s.note && <p class="sheet-note">{s.note}</p>}
         {s.fields.map((f) => (
           <label key={f.name} class="sheet-field">
             <span>{f.label}</span>
@@ -138,6 +140,8 @@ const PATHS = {
   heart: "M12 20s-7.5-4.6-7.5-10A4.5 4.5 0 0 1 12 7.1 4.5 4.5 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z",
   shield: "M12 3.5l7 2.5v5.5c0 4.6-3 8-7 9.5-4-1.5-7-4.9-7-9.5V6z",
   search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4",
+  bell: "M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0",
+  bellOff: "M3.5 3.5l17 17M8.2 5.9A6 6 0 0 1 18 11v4M6 11v5.5l-1.5 2H17M10 20.5a2 2 0 0 0 4 0",
   gear: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 13.5l1.6 1.2-2 3.4-1.9-.7a7 7 0 0 1-1.9 1.1L15 20.5h-4l-.3-2a7 7 0 0 1-1.9-1.1l-1.9.7-2-3.4 1.6-1.2a7 7 0 0 1 0-2.2L4.9 9.1l2-3.4 1.9.7a7 7 0 0 1 1.9-1.1l.3-2h4l.3 2a7 7 0 0 1 1.9 1.1l1.9-.7 2 3.4-1.6 1.2a7 7 0 0 1 0 2.2z",
   globe: "M12 20.5a8.5 8.5 0 1 0 0-17 8.5 8.5 0 0 0 0 17zM3.5 12h17M12 3.5c2.3 2.3 3.4 5.2 3.4 8.5s-1.1 6.2-3.4 8.5M12 3.5C9.7 5.8 8.6 8.7 8.6 12s1.1 6.2 3.4 8.5",
   folder: "M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z",
@@ -164,11 +168,12 @@ export function Card(props: {
   class?: string;
   children?: ComponentChildren;
   onClick?: () => void;
+  id?: string;
   share?: string; // tracker key: hold the card to share it as a picture (shareCards.tsx)
 }) {
   const ref = useHold<HTMLElement>({ menu: props.share ? () => [shareImageItem(props.share!)] : undefined });
   return (
-    <section ref={ref} class={`card ${props.class ?? ""}`} onClick={props.onClick} data-share={props.share}>
+    <section ref={ref} id={props.id} class={`card ${props.class ?? ""}`} onClick={props.onClick} data-share={props.share}>
       {(props.title || props.action) && (
         <div class="card-head">
           <h2>

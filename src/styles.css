@@ -1520,3 +1520,15 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .lang-item.on > .ico { color: var(--accent); }
 .lang-flag { font-size: 26px; line-height: 1; width: 34px; text-align: center; }
 .lang-item small { display: block; }
+
+/* ---------- reminders ---------- */
+.habit-bell { display: inline-flex; align-items: center; gap: 3px; margin-inline-start: 8px; color: var(--accent); font-weight: 600; }
+.sheet-note { color: var(--muted); font-size: 14px; line-height: 1.4; margin: -6px 0 14px; }
+
+/* ---------- first steps card, tappable rings ---------- */
+.tips .tip { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 10px; font-size: 15px; line-height: 1.4; }
+.tip-ico { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); flex: none; }
+.tips .btn { margin-top: 4px; }
+.hero-ring { cursor: pointer; border-radius: 18px; transition: transform .15s; }
+.hero-ring:active { transform: scale(.94); }
+#habits-card, #body-widgets { scroll-margin-top: 12px; }

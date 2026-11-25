@@ -38,10 +38,20 @@ interface Texts {
   cmdTerms: string;
   shortDescription: string; // bot profile, up to 120 characters
   description: string;      // shown before /start, up to 512 characters
+  reminderText: string;     // {habit} = emoji + name
+  reminderDone: string;
+  reminderDoneText: string;
+  reminderMarked: string;
+  reminderGone: string;
 }
 
 const T: Record<Lang, Texts> = {
   ru: {
+    reminderText: "⏰ Напоминание: {habit}\nОтметь, когда сделаешь 💪",
+    reminderDone: "✅ Выполнено",
+    reminderDoneText: "✅ {habit} — отмечено. Так держать!",
+    reminderMarked: "Отмечено ✅",
+    reminderGone: "Это напоминание уже выключено",
     open: "🧠 Открыть",
     start:
       "Привет! Это твой второй мозг 🧠\n\n" +
@@ -77,6 +87,11 @@ const T: Record<Lang, Texts> = {
       "Все записи хранятся только на твоём устройстве. Нажми «Старт», чтобы начать.",
   },
   en: {
+    reminderText: "⏰ Reminder: {habit}\nMark it when it's done 💪",
+    reminderDone: "✅ Done",
+    reminderDoneText: "✅ {habit} — done. Keep it up!",
+    reminderMarked: "Marked ✅",
+    reminderGone: "This reminder is turned off",
     open: "🧠 Open",
     start:
       "Hi! This is your second brain 🧠\n\n" +
@@ -112,6 +127,11 @@ const T: Record<Lang, Texts> = {
       "Everything is stored only on your device. Tap Start to begin.",
   },
   uk: {
+    reminderText: "⏰ Нагадування: {habit}\nПозначай, коли зробиш 💪",
+    reminderDone: "✅ Виконано",
+    reminderDoneText: "✅ {habit} — позначено. Так тримати!",
+    reminderMarked: "Позначено ✅",
+    reminderGone: "Це нагадування вже вимкнено",
     open: "🧠 Відкрити",
     start:
       "Привіт! Це твій другий мозок 🧠\n\n" +
@@ -147,6 +167,11 @@ const T: Record<Lang, Texts> = {
       "Усі записи зберігаються лише на твоєму пристрої. Натисни «Старт», щоб почати.",
   },
   ar: {
+    reminderText: "⏰ تذكير: {habit}\nضع علامة عندما تُنجزها 💪",
+    reminderDone: "✅ تم",
+    reminderDoneText: "✅ {habit} — تم التسجيل. واصل التقدّم!",
+    reminderMarked: "تم التسجيل ✅",
+    reminderGone: "هذا التذكير متوقّف",
     open: "🧠 فتح",
     start:
       "مرحبًا! هذا دماغك الثاني 🧠\n\n" +
