@@ -927,6 +927,28 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px) scale(.96); } }
 
+/* ---------- opened outside Telegram ---------- */
+
+.open-in-tg {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+.open-in-tg-icon {
+  width: 96px; height: 96px; border-radius: 26px;
+  display: grid; place-items: center;
+  font-size: 52px;
+  background: var(--card);
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, .25);
+  margin-bottom: 8px;
+}
+.open-in-tg h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+.open-in-tg p { color: var(--muted); font-size: 16px; line-height: 1.4; }
+.open-in-tg .btn { margin-top: 12px; min-width: 240px; text-decoration: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

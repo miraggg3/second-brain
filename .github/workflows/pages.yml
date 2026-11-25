@@ -33,6 +33,8 @@ jobs:
         env:
           # address of the Cloudflare Worker (repo Settings → Variables → API_BASE)
           VITE_API_BASE: ${{ vars.API_BASE }}
+          # bot username for the "open in Telegram" screen (Settings → Variables → BOT_USERNAME)
+          VITE_BOT_USERNAME: ${{ vars.BOT_USERNAME }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

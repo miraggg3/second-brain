@@ -5,6 +5,11 @@ import "./styles.css";
 import { render } from "preact";
 import { App } from "./App";
 import { initTheme } from "./theme";
+import { inTelegram } from "./telegram";
+import { OpenInTelegram } from "./screens/OpenInTelegram";
 
 initTheme();
-render(<App />, document.getElementById("app")!);
+// Outside Telegram only an "open via the bot" screen. `npm run dev` keeps the
+// full app so it can be developed in a normal browser.
+const root = document.getElementById("app")!;
+render(inTelegram || import.meta.env.DEV ? <App /> : <OpenInTelegram />, root);

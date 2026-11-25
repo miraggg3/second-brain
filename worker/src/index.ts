@@ -124,14 +124,25 @@ async function verifyInitData(initData: unknown, token: string): Promise<TgUser 
 
 // ---------- HTTP helpers ----------
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+// Browsers may call the API only from the Mini App itself (WEBAPP_URL).
+// This is in addition to the initData check: without a valid Telegram
+// signature every /api/ request is rejected anyway.
+const appOrigin = (env: Env) => new URL(env.WEBAPP_URL).origin;
+
+function withCors(res: Response, env: Env): Response {
+  const out = new Response(res.body, res);
+  out.headers.set("Access-Control-Allow-Origin", appOrigin(env));
+  out.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  out.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  out.headers.append("Vary", "Origin");
+  return out;
+}
+
+// files for Telegram's native download dialog are fetched by Telegram itself
+const DOWNLOAD_CORS = { "Access-Control-Allow-Origin": "*" };
 
 const json = (status: number, obj: unknown) =>
-  new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json; charset=utf-8", ...CORS } });
+  new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json; charset=utf-8" } });
 
 const FILE_NAME_RE = /^[\p{L}\p{N} ._-]{1,80}\.(json|zip)$/u;
 
@@ -154,7 +165,11 @@ function decodeFile(body: Record<string, unknown>): { name: string; bytes: Uint8
 // ---------- API ----------
 
 async function handleApi(req: Request, env: Env, path: string, origin: string): Promise<Response> {
-  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+  // a browser on another site: refuse before reading the body
+  const from = req.headers.get("Origin");
+  if (from && from !== appOrigin(env)) return json(403, { error: "origin" });
+
+  if (req.method === "OPTIONS") return new Response(null, { status: 204 });
   if (req.method !== "POST") return json(405, { error: "method not allowed" });
 
   const raw = await req.text();
@@ -230,7 +245,7 @@ async function handleDownload(env: Env, path: string): Promise<Response> {
       "Content-Type": fileName.endsWith(".zip") ? "application/zip" : "application/json",
       "Content-Disposition": `attachment; filename="backup${fileName.endsWith(".zip") ? ".zip" : ".json"}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
       "Cache-Control": "no-store",
-      ...CORS,
+      ...DOWNLOAD_CORS,
     },
   });
 }
@@ -364,7 +379,7 @@ export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
     try {
-      if (url.pathname.startsWith("/api/")) return await handleApi(req, env, url.pathname, url.origin);
+      if (url.pathname.startsWith("/api/")) return withCors(await handleApi(req, env, url.pathname, url.origin), env);
       if (url.pathname.startsWith("/dl/") && req.method === "GET") return await handleDownload(env, url.pathname);
 
       if (url.pathname === "/bot" && req.method === "POST") {
