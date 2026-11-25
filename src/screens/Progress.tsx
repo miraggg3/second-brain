@@ -24,15 +24,15 @@ function Body() {
   const moods = lastDays(30).filter((x) => m.mood[dayKey(x)]).map((x) => ({ label: shortDay(x), value: m.mood[dayKey(x)]! }));
   return (
     <>
-      <Card title="Вес тела" icon="scale"><LineChart points={weights} unit=" кг" color="var(--c-weight)" /></Card>
-      <Card title="Сон · 14 дней" icon="moon"><BarChart points={series(m.sleep, days14)} unit=" ч" goal={8} color="var(--c-sleep)" /></Card>
-      <Card title="Вода · 14 дней" icon="drop">
+      <Card class="shareable" title="Вес тела" icon="scale"><LineChart points={weights} unit=" кг" color="var(--c-weight)" /></Card>
+      <Card class="shareable" title="Сон · 14 дней" icon="moon"><BarChart points={series(m.sleep, days14)} unit=" ч" goal={8} color="var(--c-sleep)" /></Card>
+      <Card class="shareable" title="Вода · 14 дней" icon="drop">
         <BarChart points={series(m.water, days14).map((p) => ({ ...p, value: p.value / 1000 }))} unit=" л"
           goal={d.settings.waterGoal / 1000} color="var(--c-water)" />
       </Card>
-      <Card title="Настроение · 30 дней" icon="smile"><LineChart points={moods} digits={1} color="var(--c-mood)" /></Card>
+      <Card class="shareable" title="Настроение · 30 дней" icon="smile"><LineChart points={moods} digits={1} color="var(--c-mood)" /></Card>
       {isPremium.value && d.trackers.map((t) => (
-        <Card key={t.id} title={`${t.name} · 14 дней`} icon="sparkle">
+        <Card key={t.id} class="shareable" title={`${t.name} · 14 дней`} icon="sparkle">
           <BarChart points={series(t.values, days14)} unit={` ${t.unit}`} />
         </Card>
       ))}
@@ -50,14 +50,14 @@ function Habits() {
   };
   return (
     <>
-      <Card title="Все привычки" icon="today">
+      <Card class="shareable" title="Все привычки" icon="today">
         <Heatmap levelOf={level} />
       </Card>
       {d.habits.map((h) => {
         const done = days30.filter((x) => h.done[dayKey(x)]).length;
         const streak = habitStreak(h);
         return (
-          <div key={h.id} class="card habit-stat">
+          <div key={h.id} class="card habit-stat shareable">
             <Ring value={done / 30} color="var(--accent)" size={58} stroke={6}>
               <b class="small">{Math.round((done / 30) * 100)}%</b>
             </Ring>
@@ -104,10 +104,10 @@ function Gym() {
         <div class="stat"><b>{num(Math.max(...h.map((x) => x.best1rm)))}</b><small>1ПМ, кг</small></div>
         <div class="stat"><b>{h.length}</b><small>тренировок</small></div>
       </div>
-      <Card title="Расчётный максимум (1ПМ)" icon="trophy">
+      <Card class="shareable" title="Расчётный максимум (1ПМ)" icon="trophy">
         <LineChart points={h.map((x) => ({ label: shortDay(x.date), value: x.best1rm }))} unit=" кг" color="var(--c-gym)" />
       </Card>
-      <Card title="Объём за тренировку" icon="gym">
+      <Card class="shareable" title="Объём за тренировку" icon="gym">
         <LineChart points={h.map((x) => ({ label: shortDay(x.date), value: x.volume }))} unit=" кг" digits={0} color="var(--c-gym)" />
       </Card>
     </>

@@ -185,7 +185,7 @@ function Overview() {
         <div class="stat"><b>{streak}<Icon name="flame" size={16} /></b><small>{plural(streak, "неделя", "недели", "недель")} подряд</small></div>
       </div>
 
-      <Card title="Посещения" icon="today" action={
+      <Card class="shareable" title="Посещения" icon="today" action={
         <button class="icon-btn" aria-label="Поделиться" onClick={(e) => shareFrom(e.currentTarget, ".card")}><Icon name="share" size={19} /></button>}>
         <Heatmap levelOf={(d) => Math.min(3, (perDay[d] ?? 0) * 2)} color="var(--c-gym)" />
         <div class="heat-legend"><span>меньше</span><i class="l0" /><i class="l1" /><i class="l2" /><i class="l3" /><span>больше</span></div>
