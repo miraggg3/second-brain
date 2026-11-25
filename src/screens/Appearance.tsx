@@ -8,6 +8,27 @@ import { closeOverlay, openOverlay } from "../nav";
 import { Icon, PageHead, toast } from "../ui";
 import { haptic } from "../telegram";
 
+// Light/dark switch, free for everyone. "Авто" follows Telegram.
+const MODES: { id: ThemeId; label: string }[] = [
+  { id: "auto", label: "Авто" },
+  { id: "light", label: "Светлая" },
+  { id: "dark", label: "Тёмная" },
+];
+
+export function ModeSwitch() {
+  const theme = data.value.settings.theme;
+  return (
+    <div class="segmented mode-switch" role="radiogroup" aria-label="Тема">
+      {MODES.map((m) => (
+        <button key={m.id} role="radio" aria-checked={theme === m.id} class={theme === m.id ? "on" : ""}
+          onClick={() => { haptic(); update("settings", (x) => ({ ...x, theme: m.id })); }}>
+          {m.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ThemeSwatch({ id }: { id: ThemeId }) {
   const s = data.value.settings;
   const p = id === "auto" ? PALETTES.light : paletteOf(id);
@@ -57,7 +78,10 @@ export function Appearance() {
       <PageHead title="Оформление" sub="Профиль" right={
         <button class="icon-btn round" aria-label="Закрыть" onClick={closeOverlay}><Icon name="close" size={20} /></button>} />
 
-      <h2 class="section-title">Тема</h2>
+      <h2 class="section-title">Светлая или тёмная</h2>
+      <ModeSwitch />
+
+      <h2 class="section-title">Цветные темы</h2>
       <div class="swatches">
         {THEME_ORDER.map((id) => <ThemeSwatch key={id} id={id} />)}
       </div>
