@@ -13,8 +13,11 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  # PR builds: one queue per branch, a newer push cancels the older build.
+  # main deploys: their own queue and never cancelled midway, so a PR build
+  # (or the auto-merge) can't stop a deploy that is already running.
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.head_ref) || 'pages-main' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
