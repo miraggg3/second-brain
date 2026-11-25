@@ -44,7 +44,7 @@ export interface Tracker {
   values: DayValues;
 }
 
-export type ThemeId = "auto" | "light" | "dark" | "snow" | "midnight" | "telegram" | "ocean" | "forest" | "sakura" | "mint" | "neon";
+export type ThemeId = "auto" | "light" | "dark" | "snow" | "midnight" | "telegram" | "ocean" | "forest" | "sakura" | "mint" | "neon" | "lavender" | "sunset";
 export type CardStyle = "clean" | "soft" | "glass" | "outline";
 
 export interface Settings {

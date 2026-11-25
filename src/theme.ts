@@ -54,6 +54,8 @@ export function initTheme() {
     const vars: Record<string, string> = {
       "--bg": p.bg, "--card": p.card, "--raised": p.raised, "--text": p.text, "--muted": p.muted,
       "--accent": p.accent, "--accent2": p.accent2, "--on-accent": p.onAccent,
+      "--c-water": p.cats.water, "--c-sleep": p.cats.sleep, "--c-weight": p.cats.weight,
+      "--c-mood": p.cats.mood, "--c-gym": p.cats.gym,
     };
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     if (canUse("6.1")) {

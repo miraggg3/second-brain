@@ -235,19 +235,19 @@ export function Today() {
 
       <section class="hero" data-share="day">
         <div class="hero-ring">
-          <Ring value={d.habits.length ? habitsDone / d.habits.length : 0} color="#fff" size={74} stroke={8}>
+          <Ring value={d.habits.length ? habitsDone / d.habits.length : 0} color="var(--on-accent)" size={74} stroke={8}>
             <b>{habitsDone}/{d.habits.length}</b>
           </Ring>
           <span>Привычки</span>
         </div>
         <div class="hero-ring">
-          <Ring value={water / goal} color="#fff" size={74} stroke={8}>
+          <Ring value={water / goal} color="var(--on-accent)" size={74} stroke={8}>
             <b>{Math.round((water / goal) * 100)}%</b>
           </Ring>
           <span>Вода</span>
         </div>
         <div class="hero-ring">
-          <Ring value={sleep / 8} color="#fff" size={74} stroke={8}>
+          <Ring value={sleep / 8} color="var(--on-accent)" size={74} stroke={8}>
             <b>{sleep ? num(sleep) : "—"}</b>
           </Ring>
           <span>Сон, ч</span>

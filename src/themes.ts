@@ -1,6 +1,19 @@
 // Color themes and card styles. Pure data, no DOM.
+//
+// Every palette is checked by scripts/check-contrast.ts (npm run contrast):
+// text and secondary text on page and cards, accent on cards, text on the
+// accent, and the category colors both as icons on cards and under white text.
 
 import type { CardStyle, ThemeId } from "./types";
+
+// Colors of the trackers: same meaning in every theme, tuned per theme
+export interface Categories {
+  water: string;
+  sleep: string;
+  weight: string;
+  mood: string;
+  gym: string;
+}
 
 export interface Palette {
   name: string;
@@ -10,62 +23,91 @@ export interface Palette {
   card: string;    // cards
   raised: string;  // inputs, chips inside cards
   text: string;
-  muted: string;
+  muted: string;   // secondary text
   accent: string;
   accent2: string; // second gradient stop
   onAccent: string;
+  cats: Categories;
 }
+
+// Deep tones for light themes and calm-bright tones for dark ones: both read
+// as icons on cards and carry white text on top.
+const CATS_LIGHT: Categories = {
+  water: "#1F6FEB", sleep: "#6A4BE8", weight: "#0F7F73", mood: "#B26200", gym: "#D93A4A",
+};
+const CATS_DARK: Categories = {
+  water: "#3A86F0", sleep: "#8162F2", weight: "#12907F", mood: "#C46F08", gym: "#E0434F",
+};
 
 export const PALETTES: Record<Exclude<ThemeId, "auto" | "telegram">, Palette> = {
   // calm neutral palettes for the default "clean" style: one accent, no gradient
   light: {
     name: "Светлая", dark: false, premium: false,
-    bg: "#F2F2F7", card: "#FFFFFF", raised: "#EDEDF0", text: "#000000", muted: "#7C7C82",
-    accent: "#007AFF", accent2: "#007AFF", onAccent: "#FFFFFF",
+    bg: "#F2F2F7", card: "#FFFFFF", raised: "#EDEDF0", text: "#000000", muted: "#6C6C72",
+    accent: "#0071E3", accent2: "#0071E3", onAccent: "#FFFFFF", cats: CATS_LIGHT,
   },
   dark: {
     name: "Тёмная", dark: true, premium: false,
-    bg: "#000000", card: "#1C1C1E", raised: "#2C2C2E", text: "#FFFFFF", muted: "#8D8D93",
-    accent: "#0A84FF", accent2: "#0A84FF", onAccent: "#FFFFFF",
+    bg: "#000000", card: "#1C1C1E", raised: "#2C2C2E", text: "#FFFFFF", muted: "#98989F",
+    accent: "#0A6CFF", accent2: "#0A6CFF", onAccent: "#FFFFFF", cats: CATS_DARK,
   },
+  // indigo → violet
   snow: {
     name: "Снег", dark: false, premium: false,
-    bg: "#F3F4F8", card: "#FFFFFF", raised: "#F1F2F7", text: "#14151C", muted: "#868AA0",
-    accent: "#5B5BF6", accent2: "#9B5CF6", onAccent: "#FFFFFF",
+    bg: "#F4F5FA", card: "#FFFFFF", raised: "#ECEEF6", text: "#14151C", muted: "#646A80",
+    accent: "#4F46E5", accent2: "#8B5CF6", onAccent: "#FFFFFF", cats: CATS_LIGHT,
   },
   midnight: {
     name: "Полночь", dark: true, premium: false,
-    bg: "#0B0C12", card: "#17181F", raised: "#22232D", text: "#F3F4F9", muted: "#7F8399",
-    accent: "#7C7CFF", accent2: "#C17BFF", onAccent: "#FFFFFF",
+    bg: "#0B0C12", card: "#171822", raised: "#232533", text: "#F3F4F9", muted: "#9497AD",
+    accent: "#8B8BFF", accent2: "#C38BFF", onAccent: "#0B0C12", cats: CATS_DARK,
   },
-  ocean: {
+  // coolors-style palettes
+  ocean: { // "Sky blue · Pacific cyan · Prussian blue"
     name: "Океан", dark: true, premium: true,
-    bg: "#04121C", card: "#0B2130", raised: "#12304A", text: "#E8F6FF", muted: "#6E93AB",
-    accent: "#22C6D6", accent2: "#3B82F6", onAccent: "#04121C",
+    bg: "#061521", card: "#0D2133", raised: "#163049", text: "#EAF6FF", muted: "#8EABC6",
+    accent: "#48CAE4", accent2: "#0096C7", onAccent: "#03131F",
+    cats: { ...CATS_DARK, water: "#2F86D9", weight: "#0F8C7E" },
   },
-  forest: {
+  forest: { // "Celadon · Mint · Brunswick green"
     name: "Лес", dark: true, premium: true,
-    bg: "#0A120D", card: "#132019", raised: "#1C2D23", text: "#ECF7EF", muted: "#7A9584",
-    accent: "#4ADE80", accent2: "#A3E635", onAccent: "#0A120D",
+    bg: "#0B1510", card: "#13221A", raised: "#1D3127", text: "#EDF6EF", muted: "#95AE9F",
+    accent: "#74C69D", accent2: "#B7E4C7", onAccent: "#0B1510",
+    cats: { ...CATS_DARK, weight: "#2E8B57" },
   },
-  sakura: {
+  sakura: { // "Paradise pink · Amaranth pink · Lavender blush"
     name: "Сакура", dark: false, premium: true,
-    bg: "#FFF3F6", card: "#FFFFFF", raised: "#FFE9EF", text: "#2B1420", muted: "#A27C8C",
-    accent: "#F0528C", accent2: "#FF8A65", onAccent: "#FFFFFF",
+    bg: "#FFF0F3", card: "#FFFFFF", raised: "#FFE3EA", text: "#2B1520", muted: "#7E5E6A",
+    accent: "#D6336C", accent2: "#E8598C", onAccent: "#FFFFFF",
+    cats: { ...CATS_LIGHT, gym: "#C92A6B" },
   },
-  mint: {
+  mint: { // "Jungle green · Emerald · Honeydew"
     name: "Мята", dark: false, premium: true,
-    bg: "#EEF9F5", card: "#FFFFFF", raised: "#E3F4EE", text: "#0F2620", muted: "#6F948A",
-    accent: "#10B981", accent2: "#06B6D4", onAccent: "#FFFFFF",
+    bg: "#EDF8F2", card: "#FFFFFF", raised: "#DDF1E6", text: "#0F261D", muted: "#557466",
+    accent: "#087A5E", accent2: "#1F9A8F", onAccent: "#FFFFFF",
+    cats: { ...CATS_LIGHT, weight: "#0B7A6A" },
   },
-  neon: {
+  neon: { // "Electric lime · Aquamarine · Eerie black"
     name: "Неон", dark: true, premium: true,
-    bg: "#050505", card: "#121212", raised: "#1D1D1D", text: "#F5F5F5", muted: "#7C7C7C",
-    accent: "#C8FF2E", accent2: "#2EFFD5", onAccent: "#050505",
+    bg: "#0A0A0A", card: "#161616", raised: "#232323", text: "#F5F5F5", muted: "#A3A3A3",
+    accent: "#CCFF33", accent2: "#00F5D4", onAccent: "#0A0A0A", cats: CATS_DARK,
+  },
+  lavender: { // "Medium slate blue · Mauve · Ghost white"
+    name: "Лаванда", dark: false, premium: true,
+    bg: "#F5F3FF", card: "#FFFFFF", raised: "#ECE8FF", text: "#1E1736", muted: "#655E85",
+    accent: "#6D4AFF", accent2: "#A855F7", onAccent: "#FFFFFF", cats: CATS_LIGHT,
+  },
+  sunset: { // "Coral · Mango · Dark purple" (synthwave)
+    name: "Закат", dark: true, premium: true,
+    bg: "#140E1F", card: "#20172F", raised: "#2D2242", text: "#FBF3FF", muted: "#AE9EC6",
+    accent: "#FF7A59", accent2: "#FFB347", onAccent: "#140E1F", cats: CATS_DARK,
   },
 };
 
-export const THEME_ORDER: ThemeId[] = ["auto", "light", "dark", "snow", "midnight", "telegram", "ocean", "forest", "sakura", "mint", "neon"];
+export const THEME_ORDER: ThemeId[] = [
+  "auto", "light", "dark", "snow", "midnight", "telegram",
+  "ocean", "forest", "sakura", "mint", "neon", "lavender", "sunset",
+];
 
 export const THEME_INFO: Record<"auto" | "telegram", { name: string; premium: boolean }> = {
   auto: { name: "Авто", premium: false },
@@ -79,6 +121,8 @@ export function themeName(id: ThemeId): string {
 export function themeIsPremium(id: ThemeId): boolean {
   return id === "auto" || id === "telegram" ? false : PALETTES[id].premium;
 }
+
+export { CATS_DARK, CATS_LIGHT };
 
 export const STYLES: { id: CardStyle; name: string; note: string; premium: boolean }[] = [
   { id: "clean", name: "Прозрачный", note: "плотный контент, стеклянные панели и кнопки", premium: false },

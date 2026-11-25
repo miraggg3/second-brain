@@ -177,7 +177,7 @@ export function DataScreen() {
       <SaveOptions make={backupBlob} name={backupFileName()} busy={busy} run={run} onDone={markBackedUp}
         caption={`Копия «Второго мозга» от ${formatDate(Date.now())}. На другом устройстве: Профиль → Перенос данных → Загрузить файл.`} />
       <div class="card list">
-        <Row icon="copy" color="linear-gradient(135deg,#F59E0B,#F97316)" title="Скопировать как текст"
+        <Row icon="copy" color="linear-gradient(135deg,#D97706,#C2410C)" title="Скопировать как текст"
           sub="Работает везде, даже без интернета" onClick={copy} />
       </div>
       {!serverOnline.value && (
@@ -198,7 +198,7 @@ export function DataScreen() {
         <div class="card list">
           <Row icon="upload" color="linear-gradient(135deg,#5B5BF6,#9B5CF6)" title="Выбрать файл" sub=".json из чата, «Файлов» или загрузок"
             onClick={() => fileInput.current?.click()} />
-          <Row icon="copy" color="linear-gradient(135deg,#F59E0B,#F97316)" title="Вставить текст" sub="Если копировал как текст"
+          <Row icon="copy" color="linear-gradient(135deg,#D97706,#C2410C)" title="Вставить текст" sub="Если копировал как текст"
             onClick={() => setPasteOpen(!pasteOpen)} />
           <input ref={fileInput} type="file" accept=".json,application/json,text/plain" hidden onChange={onFile} />
         </div>
