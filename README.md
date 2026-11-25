@@ -50,6 +50,10 @@ npm run build
 
 Push в `main` → GitHub Actions собирает и публикует на https://miraggg3.github.io/second-brain/
 
+Pull Request от владельца репозитория мёржится сам, как только сборка прошла
+(`.github/workflows/automerge.yml`), и сразу выкладывается. Черновики (draft),
+PR из форков и от других людей автоматически не мёржатся.
+
 ## Сервер бота (Cloudflare Workers) — нужен для оплаты, «в чат» и «скачать»
 
 Один раз, из папки `worker`:
