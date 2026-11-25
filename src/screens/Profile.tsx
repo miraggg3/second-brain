@@ -113,7 +113,7 @@ export function Profile() {
           sub={d.settings.lastBackup ? `копия от ${formatDate(d.settings.lastBackup, { day: "numeric", month: "short" })}` : "копий ещё не было"}
           onClick={() => openOverlay({ name: "data" })} />
         <Row icon="drop" color="var(--c-water)" title="Цель по воде" sub={`${num(d.settings.waterGoal / 1000, 2)} л в день`} onClick={setWaterGoal} />
-        <Row icon="crown" color="linear-gradient(135deg,#F59E0B,#EF4444)" title="Premium" sub={premiumStatusText()}
+        <Row icon="crown" color="var(--grad-gold)" title="Premium" sub={premiumStatusText()}
           onClick={() => openOverlay({ name: "premium" })} />
       </div>
 

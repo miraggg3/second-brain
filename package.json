@@ -5,12 +5,13 @@
   "description": "Second Brain: Telegram Mini App (notes + life trackers) and its bot server",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.json && vite build",
+    "build": "node scripts/check-contrast.ts && tsc -p tsconfig.json && vite build",
     "typecheck": "tsc -p tsconfig.json && npm --prefix worker run typecheck",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "contrast": "node scripts/check-contrast.ts"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.18"
   },
   "dependencies": {
     "@fontsource-variable/onest": "5.3.1",

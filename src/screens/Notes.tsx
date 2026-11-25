@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "preact/hooks";
 import { signal } from "@preact/signals";
+import { createPortal } from "preact/compat";
 import { data, update } from "../store";
 import { closeOverlay, openOverlay } from "../nav";
 import { formatDate, newId, num, plural } from "../utils";
@@ -87,9 +88,14 @@ export function Notes() {
       </div>
       {!notes.length && <Empty icon="notes">Здесь будут твои мысли, идеи и списки. Нажми «+», чтобы записать первую. Теги ставь через #.</Empty>}
       {notes.length > 0 && !visible.length && <Empty icon="search">Ничего не нашлось</Empty>}
-      <button class="fab" aria-label="Новая заметка" onClick={() => openOverlay({ name: "editor", id: null })}>
-        <Icon name="plus" size={28} />
-      </button>
+      {/* rendered into <body>: the page's slide-in animation uses a transform,
+          which would otherwise make this fixed button move with the page */}
+      {createPortal(
+        <button class="fab" aria-label="Новая заметка" onClick={() => openOverlay({ name: "editor", id: null })}>
+          <Icon name="plus" size={28} />
+        </button>,
+        document.body,
+      )}
     </>
   );
 }
