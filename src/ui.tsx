@@ -156,9 +156,10 @@ export function Card(props: {
   class?: string;
   children?: ComponentChildren;
   onClick?: () => void;
+  share?: string; // tracker key for "Поделиться", see shareCards.tsx
 }) {
   return (
-    <section class={`card ${props.class ?? ""}`} onClick={props.onClick}>
+    <section class={`card ${props.class ?? ""}`} onClick={props.onClick} data-share={props.share}>
       {(props.title || props.action) && (
         <div class="card-head">
           <h2>

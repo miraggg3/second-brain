@@ -76,7 +76,7 @@ function HabitRow({ h, editing }: { h: Habit; editing: boolean }) {
   const done = !!h.done[dayKey()];
   const streak = habitStreak(h);
   return (
-    <div class={`habit ${done ? "done" : ""}`}>
+    <div class={`habit ${done ? "done" : ""}`} data-share={`habit:${h.id}`}>
       <span class="habit-emoji">{h.emoji || "✨"}</span>
       <span class="habit-text">
         <b>{h.name}</b>
@@ -164,7 +164,7 @@ function MetricTiles() {
 
   return (
     <div class="tiles">
-      <div class="tile water">
+      <div class="tile water" data-share="metric:water">
         <div class="tile-head"><span class="tile-ico"><Icon name="drop" size={18} /></span>Вода</div>
         <div class="tile-value">{num(water / 1000, 2)}<small> / {num(goal / 1000, 1)} л</small></div>
         <div class="bar-line"><i style={{ width: `${Math.min(100, (water / goal) * 100)}%` }} /></div>
@@ -174,13 +174,13 @@ function MetricTiles() {
         </div>
       </div>
 
-      <button class="tile sleep" onClick={() => editMetric("sleep")}>
+      <button class="tile sleep" data-share="metric:sleep" onClick={() => editMetric("sleep")}>
         <div class="tile-head"><span class="tile-ico"><Icon name="moon" size={18} /></span>Сон</div>
         <div class="tile-value">{sleep != null ? num(sleep) : "—"}<small> ч</small></div>
         <small class="tile-note">{sleep == null ? "нажми, чтобы внести" : sleep >= 7 ? "отличный сон" : "маловато"}</small>
       </button>
 
-      <button class="tile weight" onClick={() => editMetric("weight")}>
+      <button class="tile weight" data-share="metric:weight" onClick={() => editMetric("weight")}>
         <div class="tile-head"><span class="tile-ico"><Icon name="scale" size={18} /></span>Вес</div>
         <div class="tile-value">{weight != null ? num(weight) : "—"}<small> кг</small></div>
         <small class="tile-note">
@@ -188,7 +188,7 @@ function MetricTiles() {
         </small>
       </button>
 
-      <div class="tile mood">
+      <div class="tile mood" data-share="metric:mood">
         <div class="tile-head"><span class="tile-ico"><Icon name="smile" size={18} /></span>Настроение</div>
         <div class="tile-value small">{mood ? MOODS[mood - 1]!.label : "Как ты?"}</div>
         <div class="moods">
@@ -233,7 +233,7 @@ export function Today() {
         </div>
       </header>
 
-      <section class="hero">
+      <section class="hero" data-share="day">
         <div class="hero-ring">
           <Ring value={d.habits.length ? habitsDone / d.habits.length : 0} color="#fff" size={74} stroke={8}>
             <b>{habitsDone}/{d.habits.length}</b>
@@ -287,7 +287,7 @@ export function Today() {
           {d.trackers.length > 0 && <button class="text-btn" onClick={() => setEditTrackers(!editTrackers)}>{editTrackers ? "Готово" : "Изменить"}</button>}
         </span>}>
         {d.trackers.map((tr) => (
-          <div class="tracker" key={tr.id}>
+          <div class="tracker" key={tr.id} data-share={`tracker:${tr.id}`}>
             <button class="tracker-main" onClick={() => editTracker(tr)}>
               <b>{tr.name}</b>
               <small>{num(tr.values[t] ?? 0)} {tr.unit} сегодня</small>
