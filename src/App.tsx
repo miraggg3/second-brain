@@ -14,6 +14,7 @@ import { Profile } from "./screens/Profile";
 import { PremiumScreen } from "./screens/Premium";
 import { DataScreen } from "./screens/DataScreen";
 import { Appearance } from "./screens/Appearance";
+import { installLongPressShare } from "./share";
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: "today", label: "Сегодня", icon: "today" },
@@ -47,6 +48,7 @@ function TabBar() {
 
 export function App() {
   useEffect(() => {
+    installLongPressShare(); // hold any card to send it as a picture
     if (tg) {
       tg.ready();
       tg.expand();

@@ -1,12 +1,15 @@
-// "Поделиться": send a card exactly as it looks in the app.
+// "Поделиться": send any card as a picture, exactly as it looks in the app.
 //
-// The pressed card is copied into an off-screen frame (padding, background,
-// app name + bot link at the bottom) and turned into a JPEG. Then:
+// Hold any card, tile or tracker for ~0.5s (one listener for the whole app),
+// or tap a share button. The card is copied into an off-screen frame (padding,
+// background, app name + bot link at the bottom) and turned into a JPEG.
+// Only the picture is sent, no separate text message:
 // 1. bot server online: the server keeps the picture for a day and prepares
 //    a photo message with an "Открыть" button; Telegram's own share dialog
 //    (WebApp.shareMessage, Telegram 8.0+) sends it to the chosen chat;
-// 2. otherwise the phone's share sheet with the picture (Telegram is in it);
-// 3. otherwise Telegram's "forward to…" dialog with text and a link.
+// 2. otherwise the phone's share sheet with just the picture;
+// 3. if the phone can't share files: Telegram's "forward to…" dialog with
+//    the card's text and a link (the only case without a picture).
 
 import { domToJpeg } from "modern-screenshot";
 import { api, blobToBase64, serverOnline } from "./api";
@@ -18,7 +21,15 @@ const BOT: string = (import.meta.env.VITE_BOT_USERNAME ?? "").replace(/^@/, "");
 // opens the bot's main Mini App
 export const appLink = BOT ? `https://t.me/${BOT}?startapp` : "";
 
-const FOOTER = "Слежу за этим во «Втором мозге» 🧠";
+// Everything that can be shared. closest() picks the innermost match, so a
+// tile inside a card is shared alone, not the whole card.
+const SHAREABLE = [
+  ".hero", ".tile", ".stat-row", ".habit", ".tracker", ".history", ".achievement",
+  ".profile-stats", ".note", ".gym-banner", ".card",
+].join(", ");
+
+// never start a share from these
+const NOT_SHAREABLE = "input, textarea, select, .sheet, .tabbar, .fab, .stepper, .editor, .segmented, .chips";
 
 // ---------- picture of a card ----------
 
@@ -29,8 +40,8 @@ async function cardImage(el: HTMLElement): Promise<Blob> {
   frame.style.width = `${width + 40}px`;
 
   const copy = el.cloneNode(true) as HTMLElement;
-  // a single row (habit) looks better inside a card
-  const body = el.matches(".card, .stat-row, .achievement, .profile-stats, .note") ? copy : wrapInCard(copy);
+  // single rows (habit, tracker) look better inside a card
+  const body = el.matches(".habit, .tracker") ? wrapInCard(copy) : copy;
   const footer = document.createElement("div");
   footer.className = "share-frame-foot";
   footer.innerHTML = `<b>🧠 Второй мозг</b>${BOT ? `<span>t.me/${BOT}</span>` : ""}`;
@@ -55,10 +66,10 @@ function wrapInCard(node: HTMLElement): HTMLElement {
 
 // ---------- sending ----------
 
-async function viaBot(image: Blob, caption: string): Promise<boolean> {
+async function viaBot(image: Blob): Promise<boolean> {
   if (!(serverOnline.value && canUse("8.0") && tg!.shareMessage)) return false;
   try {
-    const { id } = await api<{ id: string }>("/api/share-photo", { image: await blobToBase64(image), caption });
+    const { id } = await api<{ id: string }>("/api/share-photo", { image: await blobToBase64(image) });
     tg!.shareMessage(id);
     return true;
   } catch (e) {
@@ -67,50 +78,53 @@ async function viaBot(image: Blob, caption: string): Promise<boolean> {
   }
 }
 
-async function viaShareSheet(image: Blob, caption: string): Promise<boolean> {
+async function viaShareSheet(image: Blob): Promise<boolean> {
   const file = new File([image], "second-brain.jpg", { type: "image/jpeg" });
   if (!navigator.canShare?.({ files: [file] })) return false;
   try {
-    await navigator.share({ files: [file], text: caption });
+    await navigator.share({ files: [file] }); // picture only: no extra text message
   } catch (e) {
     if ((e as Error).name !== "AbortError") throw e; // closed by the user: fine
   }
   return true;
 }
 
-export function shareText(text: string) {
-  if (!appLink) return toast("Не задан бот для ссылки");
-  const message = `${text.trim()}\n\n${FOOTER}`;
+function shareText(text: string) {
+  if (!appLink) return toast("Не получилось поделиться");
+  const message = `${text.trim().slice(0, 900)}\n\nВторой мозг 🧠`;
   const url = `https://t.me/share/url?url=${encodeURIComponent(appLink)}&text=${encodeURIComponent(message)}`;
   if (inTelegram) tg!.openTelegramLink(url);
   else window.open(url, "_blank", "noopener");
 }
 
+// what the card says, for the last fallback
+const textOf = (el: HTMLElement) => el.innerText.replace(/\n{2,}/g, "\n").trim();
+
 let busy = false;
 
-// Share the card `el` as a picture; `text` is the caption and the last fallback.
-export async function shareCard(el: HTMLElement | null, text: string) {
-  if (busy) return;
+export async function shareCard(el: HTMLElement | null) {
+  if (!el || busy) return;
   busy = true;
   haptic("medium");
-  const caption = `${text.trim()}\n\n${FOOTER}${appLink ? `\n${appLink}` : ""}`;
   try {
-    if (el) {
-      const image = await cardImage(el);
-      if (await viaBot(image, caption)) return;
-      if (await viaShareSheet(image, caption)) return;
-    }
-    shareText(text);
+    const image = await cardImage(el);
+    if (await viaBot(image)) return;
+    if (await viaShareSheet(image)) return;
+    shareText(textOf(el));
   } catch (e) {
     console.warn("share failed:", (e as Error).message);
-    shareText(text);
+    shareText(textOf(el));
   } finally {
     busy = false;
   }
 }
 
-// ---------- long press ----------
-// One press at a time, so the state lives here and survives re-renders.
+// For share buttons: share the closest element matching `selector`.
+export function shareFrom(button: EventTarget | null, selector: string) {
+  shareCard(button instanceof HTMLElement ? button.closest<HTMLElement>(selector) : null);
+}
+
+// ---------- long press, once for the whole app ----------
 
 const HOLD_MS = 500;
 let timer: number | undefined;
@@ -123,41 +137,39 @@ function cancel() {
   timer = undefined;
 }
 
-// Spread on a card: hold ~0.5s to share it as a picture, a normal tap still works.
-export function longPressShare(getText: () => string) {
-  return {
-    onPointerDown: (e: PointerEvent) => {
-      const el = e.currentTarget as HTMLElement;
-      fired = false;
-      startX = e.clientX;
-      startY = e.clientY;
-      cancel();
-      timer = window.setTimeout(() => {
-        timer = undefined;
-        fired = true;
-        shareCard(el, getText());
-      }, HOLD_MS);
-    },
-    onPointerMove: (e: PointerEvent) => {
-      // scrolling is not a long press
-      if (Math.abs(e.clientX - startX) > 10 || Math.abs(e.clientY - startY) > 10) cancel();
-    },
-    onPointerUp: cancel,
-    onPointerCancel: cancel,
-    onPointerLeave: cancel,
-    onContextMenu: (e: Event) => e.preventDefault(),
-    // the tap that ended a long press must not also open/toggle things
-    onClickCapture: (e: Event) => {
-      if (!fired) return;
-      fired = false;
-      e.stopPropagation();
-      e.preventDefault();
-    },
-  };
+function shareableAt(target: EventTarget | null): HTMLElement | null {
+  if (!(target instanceof Element) || target.closest(NOT_SHAREABLE)) return null;
+  return target.closest<HTMLElement>(SHAREABLE);
 }
 
-// For share buttons: share the closest element matching `selector`.
-export function shareFrom(button: EventTarget | null, selector: string, text: string) {
-  const el = button instanceof HTMLElement ? button.closest<HTMLElement>(selector) : null;
-  shareCard(el, text);
+export function installLongPressShare() {
+  document.addEventListener("pointerdown", (e) => {
+    fired = false;
+    cancel();
+    const el = shareableAt(e.target);
+    if (!el) return;
+    startX = e.clientX;
+    startY = e.clientY;
+    timer = window.setTimeout(() => {
+      timer = undefined;
+      fired = true;
+      shareCard(el);
+    }, HOLD_MS);
+  });
+  document.addEventListener("pointermove", (e) => {
+    // scrolling is not a long press
+    if (Math.abs(e.clientX - startX) > 10 || Math.abs(e.clientY - startY) > 10) cancel();
+  });
+  for (const type of ["pointerup", "pointercancel"]) document.addEventListener(type, cancel);
+  // the tap that ended a long press must not also open/toggle things
+  document.addEventListener("click", (e) => {
+    if (!fired) return;
+    fired = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }, true);
+  // no "copy / select" menu on a held card
+  document.addEventListener("contextmenu", (e) => {
+    if (shareableAt(e.target)) e.preventDefault();
+  });
 }
