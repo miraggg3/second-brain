@@ -11,6 +11,18 @@ import { dayKey, newId, num, plural, startOfWeek } from "../utils";
 import { Heatmap } from "../charts";
 import { Card, Empty, Icon, PageHead, Stepper, toast } from "../ui";
 import { confirmAsk, haptic, hapticOk } from "../telegram";
+import { longPressShare, shareText } from "../share";
+
+function workoutShareText(w: Workout): string {
+  const date = new Date(w.start).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+  const lines = w.items.map((it) => `• ${it.name}: ${it.sets.map((s) => `${num(s.w)}×${s.r}`).join(", ")}`);
+  const sets = setCount(w);
+  return [
+    `🏋️ Тренировка ${date}`,
+    ...lines,
+    `⏱ ${duration((w.end ?? w.start) - w.start)} · ${sets} ${plural(sets, "подход", "подхода", "подходов")} · ${num(volumeOf(w), 0)} кг`,
+  ].join("\n");
+}
 
 export function startWorkout() {
   if (activeWorkout(data.value.workouts)) return;
@@ -161,6 +173,11 @@ function Overview() {
   const perDay: Record<string, number> = {};
   for (const w of all) perDay[dayKey(w.start)] = (perDay[dayKey(w.start)] ?? 0) + 1;
 
+  const statsText = () => [
+    streak > 0 ? `🏋️ ${streak} ${plural(streak, "неделя", "недели", "недель")} подряд в зале 🔥` : "🏋️ Хожу в зал",
+    `${month} ${plural(month, "тренировка", "тренировки", "тренировок")} за месяц, ${week} на этой неделе`,
+  ].join("\n");
+
   const remove = async (id: string) => {
     if (!(await confirmAsk("Удалить тренировку из истории?"))) return;
     set("workouts", ws.filter((x) => x.id !== id));
@@ -178,13 +195,14 @@ function Overview() {
         </span>
       </button>
 
-      <div class="stat-row">
+      <div class="stat-row" {...longPressShare(statsText)}>
         <div class="stat"><b>{week}</b><small>на неделе</small></div>
         <div class="stat"><b>{month}</b><small>за месяц</small></div>
         <div class="stat"><b>{streak}<Icon name="flame" size={16} /></b><small>{plural(streak, "неделя", "недели", "недель")} подряд</small></div>
       </div>
 
-      <Card title="Посещения" icon="today">
+      <Card title="Посещения" icon="today" action={
+        <button class="icon-btn" aria-label="Поделиться" onClick={() => shareText(statsText())}><Icon name="share" size={19} /></button>}>
         <Heatmap levelOf={(d) => Math.min(3, (perDay[d] ?? 0) * 2)} color="var(--c-gym)" />
         <div class="heat-legend"><span>меньше</span><i class="l0" /><i class="l1" /><i class="l2" /><i class="l3" /><span>больше</span></div>
       </Card>
@@ -194,7 +212,7 @@ function Overview() {
         const d = new Date(w.start);
         const open = openId === w.id;
         return (
-          <div key={w.id} class={`history card ${open ? "open" : ""}`}>
+          <div key={w.id} class={`history card ${open ? "open" : ""}`} {...longPressShare(() => workoutShareText(w))}>
             <button class="history-head" onClick={() => setOpenId(open ? null : w.id)}>
               <span class="date-badge">
                 <b>{d.getDate()}</b>
@@ -216,7 +234,10 @@ function Overview() {
                     </div>
                   </div>
                 ))}
-                <button class="text-btn danger" onClick={() => remove(w.id)}><Icon name="trash" size={16} /> Удалить тренировку</button>
+                <div class="row-actions">
+                  <button class="text-btn" onClick={() => shareText(workoutShareText(w))}><Icon name="share" size={16} /> Поделиться</button>
+                  <button class="text-btn danger" onClick={() => remove(w.id)}><Icon name="trash" size={16} /> Удалить</button>
+                </div>
               </div>
             )}
           </div>

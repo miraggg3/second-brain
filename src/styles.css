@@ -927,6 +927,14 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px) scale(.96); } }
 
+/* ---------- long press to share ---------- */
+/* no iOS text selection / callout menu while holding a shareable item */
+.stat-row, .history, .habit, .note, .achievement, .profile-stats {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* ---------- opened outside Telegram ---------- */
 
 .open-in-tg {

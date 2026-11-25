@@ -7,6 +7,7 @@ import { closeOverlay, openOverlay } from "../nav";
 import { formatDate, newId, num, plural } from "../utils";
 import { Empty, Icon, PageHead } from "../ui";
 import { confirmAsk, haptic } from "../telegram";
+import { longPressShare } from "../share";
 
 const query = signal("");
 
@@ -74,7 +75,8 @@ export function Notes() {
         {visible.map((n) => {
           const nt = tagsOf(n.text);
           return (
-            <button key={n.id} class="note card" onClick={() => openOverlay({ name: "editor", id: n.id })}>
+            <button key={n.id} class="note card" onClick={() => openOverlay({ name: "editor", id: n.id })}
+              {...longPressShare(() => `📝 ${n.text.trim().slice(0, 900)}`)}>
               <b>{titleOf(n.text)}</b>
               {previewOf(n.text) && <p>{previewOf(n.text)}</p>}
               <span class="note-foot">
