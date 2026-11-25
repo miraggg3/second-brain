@@ -1,0 +1,30 @@
+import type { Entry } from "..";
+import type ru from "../ru/progress";
+
+export default {
+  "progress.title": "Прогрес",
+  "progress.sub": "Як змінюєшся ти",
+  "progress.segBody": "Тіло",
+  "progress.segHabits": "Звички",
+  "progress.weight": "Вага тіла",
+  "progress.sleep14": "Сон · 14 днів",
+  "progress.water14": "Вода · 14 днів",
+  "progress.mood30": "Настрій · 30 днів",
+  "progress.tracker14": "{name} · 14 днів",
+  "progress.habitsEmpty": "Додай звички на вкладці «Сьогодні» — тут з’явиться статистика.",
+  "progress.allHabits": "Усі звички",
+  "progress.doneOf30": { one: "{n} з 30 днів", few: "{n} з 30 днів", many: "{n} з 30 днів", other: "{n} з 30 днів" },
+  "progress.streak": "серія {n}",
+  "progress.lockedTitle": "Рекорди та зростання сили",
+  "progress.lockedText": "Особисті рекорди, розрахунковий максимум на 1 повторення та графіки для кожної вправи.",
+  "progress.lockedCta": "Відкрити з Premium",
+  "progress.gymEmpty": "Заверши перше тренування — і тут з’являться рекорди.",
+  "progress.statRecord": "рекорд, кг",
+  "progress.stat1rm": "1ПМ, кг",
+  "progress.statWorkouts": { one: "тренування", few: "тренування", many: "тренувань", other: "тренування" },
+  "progress.oneRm": "Розрахунковий максимум (1ПМ)",
+  "progress.volume": "Об’єм за тренування",
+  "progress.chartNeed2": "Потрібно щонайменше 2 записи, щоб побудувати графік",
+  "progress.chartEmpty": "Поки немає записів за цей період",
+  "progress.avg": "у середньому",
+} satisfies Record<keyof typeof ru, Entry>;

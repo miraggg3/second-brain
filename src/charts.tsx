@@ -2,6 +2,7 @@
 
 import { dayKey, daysAgo, num, startOfWeek } from "./utils";
 import { Empty } from "./ui";
+import { t } from "./i18n";
 
 const W = 320;
 const H = 140;
@@ -30,7 +31,7 @@ function smoothPath(pts: [number, number][]): string {
 
 export function LineChart({ points, unit = "", digits = 1, color = "var(--accent)" }:
   { points: Point[]; unit?: string; digits?: number; color?: string }) {
-  if (points.length < 2) return <Empty>Нужно хотя бы 2 записи, чтобы построить график</Empty>;
+  if (points.length < 2) return <Empty>{t("progress.chartNeed2")}</Empty>;
   const gid = `g${++gradSeq}`;
   const padX = 6, top = 26, bottom = 22;
   const vals = points.map((p) => p.value);
@@ -47,12 +48,12 @@ export function LineChart({ points, unit = "", digits = 1, color = "var(--accent
   const delta = lastP.value - first.value;
 
   return (
-    <div class="chart-box">
+    <div class="chart-box" dir="ltr">
       <div class="chart-top">
         <b>{num(lastP.value, digits)}<small>{unit}</small></b>
         {delta !== 0 && <span class={`delta ${delta > 0 ? "up" : "down"}`}>{delta > 0 ? "+" : "−"}{num(Math.abs(delta), digits)}</span>}
       </div>
-      <svg class="chart" viewBox={`0 0 ${W} ${H}`} role="img" style={{ color }}>
+      <svg class="chart" dir="ltr" viewBox={`0 0 ${W} ${H}`} role="img" style={{ color }}>
         <defs>
           <linearGradient id={gid} x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stop-color="currentColor" stop-opacity="0.28" />
@@ -73,7 +74,7 @@ export function LineChart({ points, unit = "", digits = 1, color = "var(--accent
 export function BarChart({ points, unit = "", goal, digits = 1, color = "var(--accent)" }:
   { points: Point[]; unit?: string; goal?: number; digits?: number; color?: string }) {
   const filled = points.filter((p) => p.value > 0);
-  if (!filled.length) return <Empty>Пока нет записей за этот период</Empty>;
+  if (!filled.length) return <Empty>{t("progress.chartEmpty")}</Empty>;
   const avg = filled.reduce((s, p) => s + p.value, 0) / filled.length;
   const top = 10, bottom = 20;
   const max = Math.max(goal ?? 0, ...points.map((p) => p.value));
@@ -82,12 +83,12 @@ export function BarChart({ points, unit = "", goal, digits = 1, color = "var(--a
   const base = H - bottom;
 
   return (
-    <div class="chart-box">
+    <div class="chart-box" dir="ltr">
       <div class="chart-top">
         <b>{num(avg, digits)}<small>{unit}</small></b>
-        <span class="muted">в среднем</span>
+        <span class="muted">{t("progress.avg")}</span>
       </div>
-      <svg class="chart" viewBox={`0 0 ${W} ${H}`} role="img" style={{ color }}>
+      <svg class="chart" dir="ltr" viewBox={`0 0 ${W} ${H}`} role="img" style={{ color }}>
         {goal ? <line class="goal" x1={0} x2={W} y1={base - h(goal)} y2={base - h(goal)} /> : null}
         {points.map((p, i) => {
           const bw = Math.min(14, slot * 0.56);
@@ -121,7 +122,7 @@ export function Heatmap({ levelOf, weeks = 17, color = "var(--accent)" }:
     cells.push(<i key={key} class={key > today ? "future" : `l${levelOf(key)}`} title={key} />);
   }
   return (
-    <div class="heatmap" style={{ "--weeks": weeks, color }}>
+    <div class="heatmap" dir="ltr" style={{ "--weeks": weeks, color }}>
       {cells}
     </div>
   );

@@ -7,7 +7,8 @@ import type {
 } from "./types";
 import { DEFAULTS } from "./store";
 import { isCardStyle, isThemeId } from "./themes";
-import { dayKey, num, plural } from "./utils";
+import { isLang, t } from "./i18n";
+import { dayKey } from "./utils";
 
 export const BACKUP_APP = "second-brain";
 export const BACKUP_VERSION = 1;
@@ -115,17 +116,17 @@ export function parseBackup(text: string): Backup {
   try {
     raw = JSON.parse(text);
   } catch {
-    throw new Error("Это не файл копии: не получилось прочитать JSON");
+    throw new Error(t("data.errNotJson"));
   }
-  if (!isObj(raw)) throw new Error("Файл пустой или повреждён");
+  if (!isObj(raw)) throw new Error(t("data.errEmpty"));
   // also accept "backup.json" from the old .zip export (data without a wrapper)
   const wrapped = raw.app === BACKUP_APP && isObj(raw.data);
   const d = wrapped ? (raw.data as Obj) : raw;
   if (!wrapped && !("notes" in d || "workouts" in d || "habits" in d)) {
-    throw new Error("Это не копия «Второго мозга»");
+    throw new Error(t("data.errForeign"));
   }
   if (wrapped && Number(raw.version) > BACKUP_VERSION) {
-    throw new Error("Файл из более новой версии приложения. Обнови Telegram и открой снова");
+    throw new Error(t("data.errNewer"));
   }
   const s = isObj(d.settings) ? d.settings : {};
   return {
@@ -146,6 +147,7 @@ export function parseBackup(text: string): Backup {
         waterGoal: fin(s.waterGoal) ?? DEFAULTS.settings.waterGoal,
         joined: fin(s.joined) ?? 0,
         widgets: cleanWidgets(s.widgets),
+        lang: isLang(s.lang) ? s.lang : undefined,
       },
     },
   };
@@ -159,14 +161,14 @@ export function countMetrics(m: Metrics): number {
 
 export function summarize(d: UserData): string {
   const parts = [
-    [d.notes.length, "заметка", "заметки", "заметок"],
-    [d.workouts.length, "тренировка", "тренировки", "тренировок"],
-    [d.habits.length, "привычка", "привычки", "привычек"],
-    [d.trackers.length, "трекер", "трекера", "трекеров"],
-    [countMetrics(d.metrics), "запись показателей", "записи показателей", "записей показателей"],
+    [d.notes.length, "data.sumNotes"],
+    [d.workouts.length, "data.sumWorkouts"],
+    [d.habits.length, "data.sumHabits"],
+    [d.trackers.length, "data.sumTrackers"],
+    [countMetrics(d.metrics), "data.sumMetrics"],
   ] as const;
-  const text = parts.filter(([n]) => n > 0).map(([n, a, b, c]) => `${num(n, 0)} ${plural(n, a, b, c)}`);
-  return text.join(", ") || "пусто";
+  const text = parts.filter(([n]) => n > 0).map(([n, key]) => t(key, { n }));
+  return text.join(", ") || t("data.sumEmpty");
 }
 
 // ---------- merge / replace ----------

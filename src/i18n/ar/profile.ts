@@ -1,0 +1,32 @@
+import type { Entry } from "..";
+import type ru from "../ru/profile";
+
+export default {
+  "profile.achFirstStep": "الخطوة الأولى",
+  "profile.achHooked": "المواظب",
+  "profile.achIron": "الحديدي",
+  "profile.achWillWeek": "أسبوع الإرادة",
+  "profile.achNoMiss": "شهر بلا انقطاع",
+  "profile.achThinker": "المفكّر",
+  "profile.achFish": "كالسمكة في الماء",
+  "profile.achSleepy": "محبّ النوم",
+  "profile.workoutsN": { zero: "{n} تمرين", one: "تمرين واحد", two: "تمرينان", few: "{n} تمارين", many: "{n} تمرينًا", other: "{n} تمرين" },
+  "profile.habitRowN": { zero: "عادة لمدة {n} يوم متتالٍ", one: "عادة ليوم واحد", two: "عادة ليومين متتاليين", few: "عادة لمدة {n} أيام متتالية", many: "عادة لمدة {n} يومًا متتاليًا", other: "عادة لمدة {n} يوم متتالٍ" },
+  "profile.notesN": { zero: "{n} ملاحظة", one: "ملاحظة واحدة", two: "ملاحظتان", few: "{n} ملاحظات", many: "{n} ملاحظةً", other: "{n} ملاحظة" },
+  "profile.waterDaysN": { zero: "هدف الماء لمدة {n} يوم", one: "هدف الماء ليوم واحد", two: "هدف الماء ليومين", few: "هدف الماء لمدة {n} أيام", many: "هدف الماء لمدة {n} يومًا", other: "هدف الماء لمدة {n} يوم" },
+  "profile.sleepLogsN": { zero: "سجّل نومك {n} مرة", one: "سجّل نومك مرة واحدة", two: "سجّل نومك مرتين", few: "سجّل نومك {n} مرات", many: "سجّل نومك {n} مرةً", other: "سجّل نومك {n} مرة" },
+  "profile.waterGoal": "هدف الماء",
+  "profile.perDay": "في اليوم",
+  "profile.daysWithUs": { zero: "يوم معنا", one: "يوم معنا", two: "يومان معنا", few: "أيام معنا", many: "يومًا معنا", other: "يوم معنا" },
+  "profile.workouts": { zero: "تمرين", one: "تمرين", two: "تمرينان", few: "تمارين", many: "تمرينًا", other: "تمرين" },
+  "profile.notes": { zero: "ملاحظة", one: "ملاحظة", two: "ملاحظتان", few: "ملاحظات", many: "ملاحظةً", other: "ملاحظة" },
+  "profile.bestStreak": "أفضل سلسلة",
+  "profile.achievements": "الإنجازات",
+  "profile.earnedOf": "{earned} من {total}",
+  "profile.appearance": "المظهر",
+  "profile.dataTransfer": "نقل البيانات",
+  "profile.backupFrom": "نسخة بتاريخ {date}",
+  "profile.noBackups": "لا توجد نسخ احتياطية بعد",
+  "profile.waterPerDay": "{v} لتر يوميًا",
+  "profile.footnote": "تُحفظ جميع سجلاتك على هذا الجهاز فقط، وإذا حذفت Telegram فستُحذف معه. احفظ نسخًا احتياطية من «نقل البيانات».",
+} satisfies Record<keyof typeof ru, Entry>;

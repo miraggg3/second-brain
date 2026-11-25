@@ -10,7 +10,8 @@ import type { ComponentChildren } from "preact";
 import { data, isPremium, update } from "../store";
 import type { Habit, MetricKind, Tracker } from "../types";
 import { activeWorkout, habitStreak, lastValue, weekStreak, workoutsSince } from "../domain";
-import { dayKey, newId, num, parseNum, plural, startOfWeek } from "../utils";
+import { dayKey, newId, num, parseNum, startOfWeek } from "../utils";
+import { locale, t } from "../i18n";
 import { ask, Avatar, Card, Empty, Icon, Ring, type IconName } from "../ui";
 import { confirmAsk, haptic, hapticOk, tgUser } from "../telegram";
 import { FREE_HABITS, requirePremium } from "../premium";
@@ -20,44 +21,44 @@ import { shareImageItem } from "../share";
 import { startWorkout } from "./Gym";
 
 export const MOODS = [
-  { emoji: "😫", label: "Тяжело" },
-  { emoji: "😕", label: "Так себе" },
-  { emoji: "😐", label: "Нормально" },
-  { emoji: "🙂", label: "Хорошо" },
-  { emoji: "🤩", label: "Отлично" },
+  { emoji: "😫", get label() { return t("today.mood1"); } },
+  { emoji: "😕", get label() { return t("today.mood2"); } },
+  { emoji: "😐", get label() { return t("today.mood3"); } },
+  { emoji: "🙂", get label() { return t("today.mood4"); } },
+  { emoji: "🤩", get label() { return t("today.mood5"); } },
 ];
 const GLASS = 250;
 const DAY = 86_400_000;
 
 export function setMetric(kind: MetricKind, value: number | null) {
-  const t = dayKey();
+  const today = dayKey();
   update("metrics", (m) => {
     const map = { ...m[kind] };
-    if (value && value > 0) map[t] = value;
-    else delete map[t];
+    if (value && value > 0) map[today] = value;
+    else delete map[today];
     return { ...m, [kind]: map };
   });
 }
 
 function greeting(): string {
   const h = new Date().getHours();
-  if (h < 5) return "Доброй ночи";
-  if (h < 12) return "Доброе утро";
-  if (h < 18) return "Добрый день";
-  return "Добрый вечер";
+  if (h < 5) return t("today.greetingNight");
+  if (h < 12) return t("today.greetingMorning");
+  if (h < 18) return t("today.greetingDay");
+  return t("today.greetingEvening");
 }
 
 // ---------- habits ----------
 
 async function addHabit() {
-  if (data.value.habits.length >= FREE_HABITS && !requirePremium(`Бесплатно — до ${FREE_HABITS} привычек`)) return;
+  if (data.value.habits.length >= FREE_HABITS && !requirePremium(t("today.freeHabitsLimit", { n: FREE_HABITS }))) return;
   const v = await ask({
-    title: "Новая привычка",
+    title: t("today.newHabit"),
     fields: [
-      { name: "name", label: "Что делаем каждый день", placeholder: "Читать 20 минут" },
-      { name: "emoji", label: "Эмодзи", placeholder: "📚" },
+      { name: "name", label: t("today.habitNameLabel"), placeholder: t("today.habitNamePlaceholder") },
+      { name: "emoji", label: t("today.emoji"), placeholder: "📚" },
     ],
-    ok: "Добавить",
+    ok: t("common.add"),
   });
   if (!v?.name) return;
   const h: Habit = { id: newId(), name: v.name.slice(0, 60), emoji: v.emoji.slice(0, 4) || "✨", created: Date.now(), done: {} };
@@ -65,22 +66,22 @@ async function addHabit() {
 }
 
 function toggleHabit(id: string) {
-  const t = dayKey();
+  const today = dayKey();
   update("habits", (hs) => hs.map((h) => {
     if (h.id !== id) return h;
     const done = { ...h.done };
-    if (done[t]) delete done[t];
-    else { done[t] = true; hapticOk(); }
+    if (done[today]) delete done[today];
+    else { done[today] = true; hapticOk(); }
     return { ...h, done };
   }));
 }
 
 async function editHabit(h: Habit) {
   const v = await ask({
-    title: "Привычка",
+    title: t("today.habit"),
     fields: [
-      { name: "name", label: "Название", value: h.name },
-      { name: "emoji", label: "Эмодзи", value: h.emoji },
+      { name: "name", label: t("common.name"), value: h.name },
+      { name: "emoji", label: t("today.emoji"), value: h.emoji },
     ],
   });
   if (!v?.name) return;
@@ -88,7 +89,7 @@ async function editHabit(h: Habit) {
 }
 
 async function deleteHabit(h: Habit) {
-  if (!(await confirmAsk(`Удалить привычку «${h.name}» вместе с историей?`))) return;
+  if (!(await confirmAsk(t("today.deleteHabitConfirm", { name: h.name })))) return;
   update("habits", (hs) => hs.filter((x) => x.id !== h.id));
 }
 
@@ -98,9 +99,9 @@ function HabitRow({ h }: { h: Habit }) {
   const ref = useHold<HTMLDivElement>({
     menu: () => [
       shareImageItem(`habit:${h.id}`),
-      { label: done ? "Снять отметку" : "Отметить сегодня", icon: "check", run: () => toggleHabit(h.id) },
-      { label: "Изменить", icon: "edit", run: () => editHabit(h) },
-      { label: "Удалить", icon: "trash", danger: true, run: () => deleteHabit(h) },
+      { label: done ? t("today.uncheck") : t("today.checkToday"), icon: "check", run: () => toggleHabit(h.id) },
+      { label: t("common.edit"), icon: "edit", run: () => editHabit(h) },
+      { label: t("common.delete"), icon: "trash", danger: true, run: () => deleteHabit(h) },
     ],
     sort: { group: "habits", id: h.id, onReorder: (a, b, after) => update("habits", (hs) => moveById(hs, a, b, after)) },
   });
@@ -109,9 +110,9 @@ function HabitRow({ h }: { h: Habit }) {
       <span class="habit-emoji">{h.emoji || "✨"}</span>
       <span class="habit-text">
         <b>{h.name}</b>
-        <small>{streak > 0 ? <><Icon name="flame" size={13} /> {streak} {plural(streak, "день", "дня", "дней")} подряд</> : "начни серию сегодня"}</small>
+        <small>{streak > 0 ? <><Icon name="flame" size={13} /> {t("today.habitStreak", { n: streak })}</> : t("today.startStreak")}</small>
       </span>
-      <button class="check" aria-label={done ? "Снять отметку" : "Отметить"} onClick={() => toggleHabit(h.id)}><Icon name="check" size={18} stroke={3} /></button>
+      <button class="check" aria-label={done ? t("today.uncheck") : t("today.check")} onClick={() => toggleHabit(h.id)}><Icon name="check" size={18} stroke={3} /></button>
     </div>
   );
 }
@@ -119,35 +120,35 @@ function HabitRow({ h }: { h: Habit }) {
 // ---------- custom trackers (premium) ----------
 
 async function newTracker() {
-  if (!requirePremium("Свои трекеры — в Premium")) return;
+  if (!requirePremium(t("today.trackersPremium"))) return;
   const v = await ask({
-    title: "Новый трекер",
+    title: t("today.newTracker"),
     fields: [
-      { name: "name", label: "Что считаем", placeholder: "Отжимания" },
-      { name: "unit", label: "Единица", placeholder: "раз" },
-      { name: "step", label: "Шаг кнопки «+»", type: "number", value: 1, step: "any" },
+      { name: "name", label: t("today.trackerNameLabel"), placeholder: t("today.trackerNamePlaceholder") },
+      { name: "unit", label: t("today.trackerUnitLabel"), placeholder: t("today.trackerUnitPlaceholder") },
+      { name: "step", label: t("today.trackerStepLabel"), type: "number", value: 1, step: "any" },
     ],
-    ok: "Создать",
+    ok: t("common.create"),
   });
   if (!v?.name) return;
-  const t: Tracker = {
+  const tr: Tracker = {
     id: newId(), name: v.name.slice(0, 40), unit: v.unit.slice(0, 12),
     step: Math.abs(parseNum(v.step) ?? 1) || 1, values: {},
   };
-  update("trackers", (ts) => [...ts, t]);
+  update("trackers", (ts) => [...ts, tr]);
   // a new tracker appears on the main screen right away
   const w = data.value.settings.widgets;
-  if (w) update("settings", (s) => ({ ...s, widgets: [...w, `t:${t.id}`] }));
+  if (w) update("settings", (s) => ({ ...s, widgets: [...w, `t:${tr.id}`] }));
 }
 
 function setTrackerValue(id: string, fn: (old: number) => number) {
-  const t = dayKey();
+  const today = dayKey();
   update("trackers", (ts) => ts.map((tr) => {
     if (tr.id !== id) return tr;
     const values = { ...tr.values };
-    const v = fn(values[t] ?? 0);
-    if (v > 0) values[t] = v;
-    else delete values[t];
+    const v = fn(values[today] ?? 0);
+    if (v > 0) values[today] = v;
+    else delete values[today];
     return { ...tr, values };
   }));
 }
@@ -155,13 +156,13 @@ function setTrackerValue(id: string, fn: (old: number) => number) {
 async function editTracker(tr: Tracker) {
   const v = await ask({
     title: tr.name,
-    fields: [{ name: "value", label: "Сегодня", type: "number", step: "any", value: tr.values[dayKey()] ?? "", suffix: tr.unit }],
+    fields: [{ name: "value", label: t("tab.today"), type: "number", step: "any", value: tr.values[dayKey()] ?? "", suffix: tr.unit }],
   });
   if (v) setTrackerValue(tr.id, () => parseNum(v.value) ?? 0);
 }
 
 async function deleteTracker(tr: Tracker) {
-  if (!(await confirmAsk(`Удалить трекер «${tr.name}» и его историю?`))) return;
+  if (!(await confirmAsk(t("today.deleteTrackerConfirm", { name: tr.name })))) return;
   update("trackers", (ts) => ts.filter((x) => x.id !== tr.id));
   const w = data.value.settings.widgets;
   if (w) update("settings", (s) => ({ ...s, widgets: w.filter((x) => x !== `t:${tr.id}`) }));
@@ -170,11 +171,11 @@ async function deleteTracker(tr: Tracker) {
 // ---------- widgets ----------
 
 const BUILTIN = ["water", "sleep", "weight", "mood"] as const;
-const BUILTIN_INFO: Record<string, { name: string; icon: IconName; color: string }> = {
-  water: { name: "Вода", icon: "drop", color: "var(--c-water)" },
-  sleep: { name: "Сон", icon: "moon", color: "var(--c-sleep)" },
-  weight: { name: "Вес", icon: "scale", color: "var(--c-weight)" },
-  mood: { name: "Настроение", icon: "smile", color: "var(--c-mood)" },
+const BUILTIN_INFO: Record<string, { name: () => string; icon: IconName; color: string }> = {
+  water: { name: () => t("today.water"), icon: "drop", color: "var(--c-water)" },
+  sleep: { name: () => t("today.sleep"), icon: "moon", color: "var(--c-sleep)" },
+  weight: { name: () => t("today.weight"), icon: "scale", color: "var(--c-weight)" },
+  mood: { name: () => t("today.mood"), icon: "smile", color: "var(--c-mood)" },
 };
 
 // tiles that can be on the screen, in the order the user chose
@@ -207,9 +208,10 @@ function reorderWidgets(dragId: string, overId: string, after: boolean) {
 function widgetInfo(id: string): { name: string; icon: IconName; color: string } {
   if (id.startsWith("t:")) {
     const tr = data.value.trackers.find((t) => `t:${t.id}` === id);
-    return { name: tr?.name ?? "Трекер", icon: "sparkle", color: "var(--accent)" };
+    return { name: tr?.name ?? t("today.tracker"), icon: "sparkle", color: "var(--accent)" };
   }
-  return BUILTIN_INFO[id]!;
+  const info = BUILTIN_INFO[id]!;
+  return { ...info, name: info.name() };
 }
 
 const widgetEditing = signal(false);
@@ -218,11 +220,11 @@ const widgetPicker = signal(false);
 async function editMetric(kind: "sleep" | "weight") {
   const cur = data.value.metrics[kind][dayKey()];
   const v = await ask({
-    title: kind === "sleep" ? "Сколько спал?" : "Вес сегодня",
+    title: kind === "sleep" ? t("today.sleepTitle") : t("today.weightTitle"),
     fields: [{
-      name: "v", label: kind === "sleep" ? "Часы сна" : "Вес", type: "number", step: "0.1",
+      name: "v", label: kind === "sleep" ? t("today.sleepLabel") : t("today.weight"), type: "number", step: "0.1",
       value: cur ?? "", placeholder: kind === "sleep" ? "8" : String(lastValue(data.value.metrics.weight) ?? 70),
-      suffix: kind === "sleep" ? "ч" : "кг",
+      suffix: kind === "sleep" ? t("unit.h") : t("unit.kg"),
     }],
   });
   if (v) setMetric(kind, parseNum(v.v));
@@ -233,12 +235,12 @@ function WaterTile() {
   const goal = data.value.settings.waterGoal || 2000;
   return (
     <div class="tile water" data-share="metric:water">
-      <div class="tile-head"><span class="tile-ico"><Icon name="drop" size={18} /></span>Вода</div>
-      <div class="tile-value">{num(water / 1000, 2)}<small> / {num(goal / 1000, 1)} л</small></div>
+      <div class="tile-head"><span class="tile-ico"><Icon name="drop" size={18} /></span>{t("today.water")}</div>
+      <div class="tile-value">{num(water / 1000, 2)}<small> / {num(goal / 1000, 1)} {t("unit.l")}</small></div>
       <div class="bar-line"><i style={{ width: `${Math.min(100, (water / goal) * 100)}%` }} /></div>
       <div class="tile-actions">
-        <button aria-label="Минус стакан" onClick={() => { haptic(); setMetric("water", Math.max(0, water - GLASS)); }}><Icon name="minus" size={16} /></button>
-        <button class="primary" onClick={() => { haptic(); setMetric("water", water + GLASS); }}><Icon name="plus" size={15} />250 мл</button>
+        <button aria-label={t("today.minusGlass")} onClick={() => { haptic(); setMetric("water", Math.max(0, water - GLASS)); }}><Icon name="minus" size={16} /></button>
+        <button class="primary" onClick={() => { haptic(); setMetric("water", water + GLASS); }}><Icon name="plus" size={15} />{GLASS} {t("unit.ml")}</button>
       </div>
     </div>
   );
@@ -248,25 +250,25 @@ function SleepTile() {
   const sleep = data.value.metrics.sleep[dayKey()];
   return (
     <button class="tile sleep" data-share="metric:sleep" onClick={() => editMetric("sleep")}>
-      <div class="tile-head"><span class="tile-ico"><Icon name="moon" size={18} /></span>Сон</div>
-      <div class="tile-value">{sleep != null ? num(sleep) : "—"}<small> ч</small></div>
-      <small class="tile-note">{sleep == null ? "нажми, чтобы внести" : sleep >= 7 ? "отличный сон" : "маловато"}</small>
+      <div class="tile-head"><span class="tile-ico"><Icon name="moon" size={18} /></span>{t("today.sleep")}</div>
+      <div class="tile-value">{sleep != null ? num(sleep) : "—"}<small> {t("unit.h")}</small></div>
+      <small class="tile-note">{sleep == null ? t("today.tapToEnter") : sleep >= 7 ? t("today.sleepGreat") : t("today.sleepLow")}</small>
     </button>
   );
 }
 
 function WeightTile() {
   const m = data.value.metrics;
-  const t = dayKey();
-  const weight = m.weight[t];
-  const prevKey = Object.keys(m.weight).sort().filter((k) => k < t).pop();
+  const today = dayKey();
+  const weight = m.weight[today];
+  const prevKey = Object.keys(m.weight).sort().filter((k) => k < today).pop();
   const delta = weight != null && prevKey ? weight - m.weight[prevKey]! : null;
   return (
     <button class="tile weight" data-share="metric:weight" onClick={() => editMetric("weight")}>
-      <div class="tile-head"><span class="tile-ico"><Icon name="scale" size={18} /></span>Вес</div>
-      <div class="tile-value">{weight != null ? num(weight) : "—"}<small> кг</small></div>
+      <div class="tile-head"><span class="tile-ico"><Icon name="scale" size={18} /></span>{t("today.weight")}</div>
+      <div class="tile-value">{weight != null ? num(weight) : "—"}<small> {t("unit.kg")}</small></div>
       <small class="tile-note">
-        {delta != null && delta !== 0 ? `${delta > 0 ? "+" : "−"}${num(Math.abs(delta))} кг с прошлого раза` : weight == null ? "нажми, чтобы внести" : "без изменений"}
+        {delta != null && delta !== 0 ? t("today.weightDelta", { delta: `${delta > 0 ? "+" : "−"}${num(Math.abs(delta))}` }) : weight == null ? t("today.tapToEnter") : t("today.noChange")}
       </small>
     </button>
   );
@@ -276,8 +278,8 @@ function MoodTile() {
   const mood = data.value.metrics.mood[dayKey()] ?? 0;
   return (
     <div class="tile mood" data-share="metric:mood">
-      <div class="tile-head"><span class="tile-ico"><Icon name="smile" size={18} /></span>Настроение</div>
-      <div class="tile-value small">{mood ? MOODS[mood - 1]!.label : "Как ты?"}</div>
+      <div class="tile-head"><span class="tile-ico"><Icon name="smile" size={18} /></span>{t("today.mood")}</div>
+      <div class="tile-value small">{mood ? MOODS[mood - 1]!.label : t("today.howAreYou")}</div>
       <div class="moods">
         {MOODS.map((md, i) => (
           <button key={md.label} class={mood === i + 1 ? "on" : ""} aria-label={md.label}
@@ -294,9 +296,9 @@ function TrackerTile({ tr }: { tr: Tracker }) {
     <div class="tile tracker-tile" data-share={`tracker:${tr.id}`}>
       <div class="tile-head"><span class="tile-ico"><Icon name="sparkle" size={18} /></span><span class="tile-name">{tr.name}</span></div>
       <div class="tile-value">{num(v)}<small> {tr.unit}</small></div>
-      <small class="tile-note">сегодня</small>
+      <small class="tile-note">{t("common.today")}</small>
       <div class="tile-actions">
-        <button aria-label="Ввести значение" onClick={() => editTracker(tr)}><Icon name="edit" size={15} /></button>
+        <button aria-label={t("today.enterValue")} onClick={() => editTracker(tr)}><Icon name="edit" size={15} /></button>
         <button class="primary" onClick={() => { haptic(); setTrackerValue(tr.id, (x) => x + tr.step); }}><Icon name="plus" size={15} />{num(tr.step)}</button>
       </div>
     </div>
@@ -314,10 +316,10 @@ function WidgetSlot({ id, children }: { id: string; children: ComponentChildren 
     menu: () => {
       const items: MenuItem[] = [
         shareImageItem(shareKeyOf(id)),
-        { label: "Убрать с экрана", icon: "eyeOff", run: () => hideWidget(id) },
-        { label: "Изменить виджеты", icon: "grid", run: () => (widgetEditing.value = true) },
+        { label: t("today.hideWidget"), icon: "eyeOff", run: () => hideWidget(id) },
+        { label: t("today.editWidgets"), icon: "grid", run: () => (widgetEditing.value = true) },
       ];
-      if (tracker) items.push({ label: "Удалить трекер", icon: "trash", danger: true, run: () => deleteTracker(tracker) });
+      if (tracker) items.push({ label: t("today.deleteTracker"), icon: "trash", danger: true, run: () => deleteTracker(tracker) });
       return items;
     },
     sort: { group: "widgets", id, onReorder: reorderWidgets },
@@ -325,7 +327,7 @@ function WidgetSlot({ id, children }: { id: string; children: ComponentChildren 
   return (
     <div ref={ref} class={`widget ${editing ? "jiggle" : ""}`}>
       {editing && (
-        <button class="widget-remove" data-no-hold aria-label="Убрать" onClick={() => hideWidget(id)}>
+        <button class="widget-remove" data-no-hold aria-label={t("today.remove")} onClick={() => hideWidget(id)}>
           <Icon name="minus" size={16} stroke={3} />
         </button>
       )}
@@ -343,7 +345,7 @@ function WidgetPicker() {
     <div class="sheet-bg" onClick={(e) => e.target === e.currentTarget && close()}>
       <div class="sheet picker">
         <div class="sheet-grip" />
-        <h3>Добавить виджет</h3>
+        <h3>{t("today.addWidget")}</h3>
         <div class="picker-list">
           {hidden.map((id) => {
             const info = widgetInfo(id);
@@ -351,18 +353,18 @@ function WidgetPicker() {
               <button key={id} class="picker-item" onClick={() => { addWidget(id); if (hidden.length === 1) close(); }}>
                 <span class="row-ico" style={{ background: info.color }}><Icon name={info.icon} size={19} /></span>
                 <b class="grow">{info.name}</b>
-                <span class="pill-btn"><Icon name="plus" size={14} /> Добавить</span>
+                <span class="pill-btn"><Icon name="plus" size={14} /> {t("common.add")}</span>
               </button>
             );
           })}
           <button class="picker-item" onClick={() => { close(); newTracker(); }}>
             <span class="row-ico" style={{ background: "var(--accent)" }}><Icon name="sparkle" size={19} /></span>
-            <span class="grow"><b>Новый трекер</b><small class="muted"> шаги, страницы, отжимания…</small></span>
-            {!isPremium.value && <span class="badge-pro">PRO</span>}
+            <span class="grow"><b>{t("today.newTracker")}</b><small class="muted"> {t("today.newTrackerHint")}</small></span>
+            {!isPremium.value && <span class="badge-pro">{t("common.pro")}</span>}
           </button>
         </div>
-        {!hidden.length && <p class="muted small center">Все виджеты уже на экране</p>}
-        <button class="btn block ghost" onClick={close}>Готово</button>
+        {!hidden.length && <p class="muted small center">{t("today.allWidgetsShown")}</p>}
+        <button class="btn block ghost" onClick={close}>{t("common.done")}</button>
       </div>
     </div>,
     document.body,
@@ -375,9 +377,9 @@ function BodyWidgets() {
   return (
     <>
       <div class="section-row">
-        <h2 class="section-title">Тело</h2>
+        <h2 class="section-title">{t("today.body")}</h2>
         <button class="text-btn" onClick={() => { haptic(); widgetEditing.value = !editing; }}>
-          {editing ? "Готово" : "Изменить"}
+          {editing ? t("common.done") : t("common.edit")}
         </button>
       </div>
       <div class={`tiles ${editing ? "editing" : ""}`}>
@@ -396,11 +398,11 @@ function BodyWidgets() {
         {(editing || !shown.length) && (
           <button class="tile add-tile" onClick={() => (widgetPicker.value = true)}>
             <Icon name="plus" size={26} />
-            <span>Добавить виджет</span>
+            <span>{t("today.addWidget")}</span>
           </button>
         )}
       </div>
-      {editing && <p class="footnote center">Перетаскивай виджеты, чтобы поменять порядок. «−» убирает с экрана.</p>}
+      {editing && <p class="footnote center">{t("today.widgetsHint")}</p>}
       <WidgetPicker />
     </>
   );
@@ -410,11 +412,11 @@ function BodyWidgets() {
 
 function DayHero() {
   const d = data.value;
-  const t = dayKey();
-  const habitsDone = d.habits.filter((h) => h.done[t]).length;
-  const water = d.metrics.water[t] ?? 0;
+  const today = dayKey();
+  const habitsDone = d.habits.filter((h) => h.done[today]).length;
+  const water = d.metrics.water[today] ?? 0;
   const goal = d.settings.waterGoal || 2000;
-  const sleep = d.metrics.sleep[t] ?? 0;
+  const sleep = d.metrics.sleep[today] ?? 0;
   const ref = useHold<HTMLElement>({ menu: () => [shareImageItem("day")] });
   return (
     <section ref={ref} class="hero" data-share="day">
@@ -422,19 +424,19 @@ function DayHero() {
         <Ring value={d.habits.length ? habitsDone / d.habits.length : 0} color="var(--on-accent)" size={74} stroke={8}>
           <b>{habitsDone}/{d.habits.length}</b>
         </Ring>
-        <span>Привычки</span>
+        <span>{t("today.habits")}</span>
       </div>
       <div class="hero-ring">
         <Ring value={water / goal} color="var(--on-accent)" size={74} stroke={8}>
           <b>{Math.round((water / goal) * 100)}%</b>
         </Ring>
-        <span>Вода</span>
+        <span>{t("today.water")}</span>
       </div>
       <div class="hero-ring">
         <Ring value={sleep / 8} color="var(--on-accent)" size={74} stroke={8}>
           <b>{sleep ? num(sleep) : "—"}</b>
         </Ring>
-        <span>Сон, ч</span>
+        <span>{t("today.sleepHours")}</span>
       </div>
     </section>
   );
@@ -444,7 +446,7 @@ function DayHero() {
 
 export function Today() {
   const d = data.value;
-  const name = tgUser?.first_name ?? "друг";
+  const name = tgUser?.first_name ?? t("common.friend");
   const active = activeWorkout(d.workouts);
   const week = workoutsSince(d.workouts, startOfWeek()).length;
   const streak = weekStreak(d.workouts);
@@ -454,13 +456,13 @@ export function Today() {
   return (
     <>
       <header class="hello">
-        <button class="hello-avatar" onClick={() => goTab("profile")} aria-label="Профиль">
-          <Avatar name={tgUser ? `${tgUser.first_name} ${tgUser.last_name ?? ""}` : "Гость"} photo={tgUser?.photo_url}
+        <button class="hello-avatar" onClick={() => goTab("profile")} aria-label={t("tab.profile")}>
+          <Avatar name={tgUser ? `${tgUser.first_name} ${tgUser.last_name ?? ""}` : t("common.guest")} photo={tgUser?.photo_url}
             seed={tgUser?.id ?? 0} size={46} ring={isPremium.value} />
         </button>
         <div class="grow">
-          <p class="eyebrow">{new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}</p>
-          <h1>{greeting()}, {name}</h1>
+          <p class="eyebrow">{new Date().toLocaleDateString(locale.value, { weekday: "long", day: "numeric", month: "long" })}</p>
+          <h1>{t("today.greetingName", { greeting: greeting(), name })}</h1>
         </div>
       </header>
 
@@ -469,15 +471,15 @@ export function Today() {
       {backupOld && (
         <button class="banner" onClick={() => openOverlay({ name: "data" })}>
           <span class="banner-ico"><Icon name="shield" size={20} /></span>
-          <span class="grow"><b>Сохрани копию данных</b><small>Записи живут только на этом устройстве</small></span>
+          <span class="grow"><b>{t("today.backupTitle")}</b><small>{t("today.backupHint")}</small></span>
           <Icon name="chevron" size={18} />
         </button>
       )}
 
-      <Card title="Привычки">
+      <Card title={t("today.habits")}>
         {d.habits.map((h) => <HabitRow key={h.id} h={h} />)}
-        {!d.habits.length && <Empty icon="flame">Добавь то, что хочешь делать каждый день, и отмечай — серия будет расти.</Empty>}
-        <button class="add-row" onClick={addHabit}><Icon name="plus" size={18} /> Новая привычка</button>
+        {!d.habits.length && <Empty icon="flame">{t("today.habitsEmpty")}</Empty>}
+        <button class="add-row" onClick={addHabit}><Icon name="plus" size={18} /> {t("today.newHabit")}</button>
       </Card>
 
       <BodyWidgets />
@@ -485,10 +487,10 @@ export function Today() {
       <button class="gym-banner" onClick={() => { if (!active) startWorkout(); goTab("gym"); }}>
         <span class="gym-ico"><Icon name="gym" size={26} /></span>
         <span class="grow">
-          <b>{active ? "Тренировка идёт" : "Пора в зал?"}</b>
-          <small>{week} {plural(week, "тренировка", "тренировки", "тренировок")} на неделе{streak ? ` · ${streak} нед. подряд` : ""}</small>
+          <b>{active ? t("today.workoutInProgress") : t("today.gymTime")}</b>
+          <small>{t("today.workoutsThisWeek", { n: week })}{streak ? ` · ${t("today.weeksInRow", { n: streak })}` : ""}</small>
         </span>
-        <span class="pill-btn">{active ? "Открыть" : "Начать"}</span>
+        <span class="pill-btn">{active ? t("today.open") : t("today.start")}</span>
       </button>
     </>
   );

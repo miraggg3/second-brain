@@ -4,7 +4,11 @@
 import { data, isPremium, update } from "../store";
 import { ModeSwitch } from "./Appearance";
 import { finishedWorkouts, habitStreak } from "../domain";
-import { dayKey, daysAgo, formatDate, num, parseNum, plural } from "../utils";
+import { dayKey, daysAgo, formatDate, num, parseNum } from "../utils";
+import { lang, LANGS, setLanguage, t, type Lang } from "../i18n";
+import { signal } from "@preact/signals";
+import { createPortal } from "preact/compat";
+import { haptic } from "../telegram";
 import { ask, Avatar, Icon, Row, type IconName } from "../ui";
 import { tgUser } from "../telegram";
 import { openOverlay } from "../nav";
@@ -41,20 +45,20 @@ function achievements(): Achievement[] {
   let waterDays = 0;
   for (let i = 0; i < 7; i++) if ((d.metrics.water[dayKey(daysAgo(i))] ?? 0) >= goal) waterDays++;
   return [
-    { id: "w1", icon: "gym", title: "Первый шаг", note: "1 тренировка", done: workouts >= 1, color: "var(--c-gym)" },
-    { id: "w10", icon: "gym", title: "Втянулся", note: "10 тренировок", done: workouts >= 10, color: "var(--c-gym)" },
-    { id: "w50", icon: "trophy", title: "Железный", note: "50 тренировок", done: workouts >= 50, color: "var(--c-gym)" },
-    { id: "s7", icon: "flame", title: "Неделя силы воли", note: "привычка 7 дней подряд", done: streak >= 7, color: "var(--c-mood)" },
-    { id: "s30", icon: "flame", title: "Месяц без пропусков", note: "привычка 30 дней подряд", done: streak >= 30, color: "var(--c-mood)" },
-    { id: "n10", icon: "notes", title: "Мыслитель", note: "10 заметок", done: d.notes.length >= 10, color: "var(--accent)" },
-    { id: "h2o", icon: "drop", title: "Как рыба в воде", note: "норма воды 7 дней", done: waterDays >= 7, color: "var(--c-water)" },
-    { id: "zz", icon: "moon", title: "Соня", note: "внеси сон 14 раз", done: Object.keys(d.metrics.sleep).length >= 14, color: "var(--c-sleep)" },
+    { id: "w1", icon: "gym", title: t("profile.achFirstStep"), note: t("profile.workoutsN", { n: 1 }), done: workouts >= 1, color: "var(--c-gym)" },
+    { id: "w10", icon: "gym", title: t("profile.achHooked"), note: t("profile.workoutsN", { n: 10 }), done: workouts >= 10, color: "var(--c-gym)" },
+    { id: "w50", icon: "trophy", title: t("profile.achIron"), note: t("profile.workoutsN", { n: 50 }), done: workouts >= 50, color: "var(--c-gym)" },
+    { id: "s7", icon: "flame", title: t("profile.achWillWeek"), note: t("profile.habitRowN", { n: 7 }), done: streak >= 7, color: "var(--c-mood)" },
+    { id: "s30", icon: "flame", title: t("profile.achNoMiss"), note: t("profile.habitRowN", { n: 30 }), done: streak >= 30, color: "var(--c-mood)" },
+    { id: "n10", icon: "notes", title: t("profile.achThinker"), note: t("profile.notesN", { n: 10 }), done: d.notes.length >= 10, color: "var(--accent)" },
+    { id: "h2o", icon: "drop", title: t("profile.achFish"), note: t("profile.waterDaysN", { n: 7 }), done: waterDays >= 7, color: "var(--c-water)" },
+    { id: "zz", icon: "moon", title: t("profile.achSleepy"), note: t("profile.sleepLogsN", { n: 14 }), done: Object.keys(d.metrics.sleep).length >= 14, color: "var(--c-sleep)" },
   ];
 }
 
 export function Profile() {
   const d = data.value;
-  const name = tgUser ? `${tgUser.first_name} ${tgUser.last_name ?? ""}`.trim() : "Гость";
+  const name = tgUser ? `${tgUser.first_name} ${tgUser.last_name ?? ""}`.trim() : t("common.guest");
   const days = Math.max(1, Math.ceil((Date.now() - (d.settings.joined || Date.now())) / DAY));
   const workouts = finishedWorkouts(d.workouts).length;
   const bestNow = Math.max(0, ...d.habits.map(habitStreak));
@@ -63,8 +67,8 @@ export function Profile() {
 
   const setWaterGoal = async () => {
     const v = await ask({
-      title: "Цель по воде",
-      fields: [{ name: "v", label: "В день", type: "number", step: "0.25", value: d.settings.waterGoal / 1000, suffix: "л" }],
+      title: t("profile.waterGoal"),
+      fields: [{ name: "v", label: t("profile.perDay"), type: "number", step: "0.25", value: d.settings.waterGoal / 1000, suffix: t("unit.l") }],
     });
     const n = v ? parseNum(v.v) : null;
     if (n && n > 0 && n <= 10) update("settings", (s) => ({ ...s, waterGoal: Math.round(n * 1000) }));
@@ -83,15 +87,15 @@ export function Profile() {
       </section>
 
       <div class="profile-stats">
-        <div><b>{num(days, 0)}</b><small>{plural(days, "день", "дня", "дней")} с нами</small></div>
-        <div><b>{workouts}</b><small>{plural(workouts, "тренировка", "тренировки", "тренировок")}</small></div>
-        <div><b>{d.notes.length}</b><small>{plural(d.notes.length, "заметка", "заметки", "заметок")}</small></div>
-        <div><b>{bestNow}</b><small>лучшая серия</small></div>
+        <div><b>{num(days, 0)}</b><small>{t("profile.daysWithUs", { n: days })}</small></div>
+        <div><b>{workouts}</b><small>{t("profile.workouts", { n: workouts })}</small></div>
+        <div><b>{d.notes.length}</b><small>{t("profile.notes", { n: d.notes.length })}</small></div>
+        <div><b>{bestNow}</b><small>{t("profile.bestStreak")}</small></div>
       </div>
 
       <div class="section-row">
-        <h2 class="section-title">Достижения</h2>
-        <span class="muted small">{earned} из {list.length}</span>
+        <h2 class="section-title with-ico"><Icon name="trophy" size={20} />{t("profile.achievements")}</h2>
+        <span class="muted small">{t("profile.earnedOf", { earned, total: list.length })}</span>
       </div>
       <div class="achievements">
         {list.map((a) => (
@@ -103,24 +107,74 @@ export function Profile() {
         ))}
       </div>
 
-      <h2 class="section-title">Настройки</h2>
+      <h2 class="section-title with-ico"><Icon name="gear" size={20} />{t("common.settings")}</h2>
       <ModeSwitch />
       <div class="card list">
-        <Row icon="palette" color="linear-gradient(135deg,#F0528C,#9B5CF6)" title="Оформление"
+        <LanguageRow />
+        <Row icon="palette" color="linear-gradient(135deg,#F0528C,#9B5CF6)" title={t("profile.appearance")}
           sub={`${themeName(d.settings.theme)} · ${STYLES.find((s) => s.id === d.settings.style)?.name ?? ""}`}
           onClick={() => openOverlay({ name: "appearance" })} />
-        <Row icon="transfer" color="linear-gradient(135deg,#22C6D6,#3B82F6)" title="Перенос данных"
-          sub={d.settings.lastBackup ? `копия от ${formatDate(d.settings.lastBackup, { day: "numeric", month: "short" })}` : "копий ещё не было"}
+        <Row icon="transfer" color="linear-gradient(135deg,#22C6D6,#3B82F6)" title={t("profile.dataTransfer")}
+          sub={d.settings.lastBackup ? t("profile.backupFrom", { date: formatDate(d.settings.lastBackup, { day: "numeric", month: "short" }) }) : t("profile.noBackups")}
           onClick={() => openOverlay({ name: "data" })} />
-        <Row icon="drop" color="var(--c-water)" title="Цель по воде" sub={`${num(d.settings.waterGoal / 1000, 2)} л в день`} onClick={setWaterGoal} />
+        <Row icon="drop" color="var(--c-water)" title={t("profile.waterGoal")} sub={t("profile.waterPerDay", { v: num(d.settings.waterGoal / 1000, 2) })} onClick={setWaterGoal} />
         <Row icon="crown" color="var(--grad-gold)" title="Premium" sub={premiumStatusText()}
           onClick={() => openOverlay({ name: "premium" })} />
       </div>
 
       <p class="footnote">
-        <Icon name="shield" size={14} /> Все записи хранятся только на этом устройстве.
-        Удалишь Telegram — удалятся и они. Делай копии в «Перенос данных».
+        <Icon name="shield" size={14} /> {t("profile.footnote")}
       </p>
+      <LanguageSheet />
     </>
+  );
+}
+
+// ---------- language ----------
+// Readable without knowing the current language: a globe icon, the word
+// "Language" in English next to the local one, and every language written in
+// itself with its flag.
+
+const languageOpen = signal(false);
+
+function LanguageRow() {
+  const cur = LANGS.find((l) => l.id === lang.value)!;
+  const title = lang.value === "en" ? t("common.language") : `${t("common.language")} · Language`;
+  return (
+    <Row icon="globe" color="linear-gradient(135deg,#10B981,#3B82F6)" title={title}
+      sub={`${cur.flag} ${cur.name}`} onClick={() => (languageOpen.value = true)} />
+  );
+}
+
+async function chooseLanguage(id: Lang) {
+  haptic();
+  languageOpen.value = false;
+  if (id === lang.value) return;
+  await setLanguage(id);
+  update("settings", (s) => ({ ...s, lang: id }));
+}
+
+function LanguageSheet() {
+  if (!languageOpen.value) return null;
+  const close = () => (languageOpen.value = false);
+  return createPortal(
+    <div class="sheet-bg" onClick={(e) => e.target === e.currentTarget && close()}>
+      <div class="sheet picker">
+        <div class="sheet-grip" />
+        <h3 class="with-ico"><Icon name="globe" size={22} />{lang.value === "en" ? "Language" : `${t("common.language")} · Language`}</h3>
+        <div class="picker-list">
+          {LANGS.map((l) => (
+            <button key={l.id} class={`picker-item lang-item ${l.id === lang.value ? "on" : ""}`} onClick={() => chooseLanguage(l.id)}
+              dir={l.rtl ? "rtl" : "ltr"} lang={l.id}>
+              <span class="lang-flag">{l.flag}</span>
+              <span class="grow"><b>{l.name}</b><small class="muted">{l.english}</small></span>
+              {l.id === lang.value && <Icon name="check" size={20} stroke={2.5} />}
+            </button>
+          ))}
+        </div>
+        <button class="btn block ghost" onClick={close}>{t("common.done")}</button>
+      </div>
+    </div>,
+    document.body,
   );
 }

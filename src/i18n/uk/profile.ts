@@ -1,0 +1,32 @@
+import type { Entry } from "..";
+import type ru from "../ru/profile";
+
+export default {
+  "profile.achFirstStep": "Перший крок",
+  "profile.achHooked": "Втягнувся",
+  "profile.achIron": "Залізний",
+  "profile.achWillWeek": "Тиждень сили волі",
+  "profile.achNoMiss": "Місяць без пропусків",
+  "profile.achThinker": "Мислитель",
+  "profile.achFish": "Як риба у воді",
+  "profile.achSleepy": "Соня",
+  "profile.workoutsN": { one: "{n} тренування", few: "{n} тренування", many: "{n} тренувань", other: "{n} тренування" },
+  "profile.habitRowN": { one: "звичка {n} день поспіль", few: "звичка {n} дні поспіль", many: "звичка {n} днів поспіль", other: "звичка {n} дня поспіль" },
+  "profile.notesN": { one: "{n} нотатка", few: "{n} нотатки", many: "{n} нотаток", other: "{n} нотатки" },
+  "profile.waterDaysN": { one: "норма води {n} день", few: "норма води {n} дні", many: "норма води {n} днів", other: "норма води {n} дня" },
+  "profile.sleepLogsN": { one: "внеси сон {n} раз", few: "внеси сон {n} рази", many: "внеси сон {n} разів", other: "внеси сон {n} рази" },
+  "profile.waterGoal": "Норма води",
+  "profile.perDay": "На день",
+  "profile.daysWithUs": { one: "день з нами", few: "дні з нами", many: "днів з нами", other: "дня з нами" },
+  "profile.workouts": { one: "тренування", few: "тренування", many: "тренувань", other: "тренування" },
+  "profile.notes": { one: "нотатка", few: "нотатки", many: "нотаток", other: "нотатки" },
+  "profile.bestStreak": "найкраща серія",
+  "profile.achievements": "Досягнення",
+  "profile.earnedOf": "{earned} з {total}",
+  "profile.appearance": "Оформлення",
+  "profile.dataTransfer": "Перенесення даних",
+  "profile.backupFrom": "копія від {date}",
+  "profile.noBackups": "копій ще не було",
+  "profile.waterPerDay": "{v} л на день",
+  "profile.footnote": "Усі записи зберігаються лише на цьому пристрої. Видалиш Telegram — зникнуть і вони. Роби копії в «Перенесення даних».",
+} satisfies Record<keyof typeof ru, Entry>;

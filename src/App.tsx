@@ -15,13 +15,17 @@ import { PremiumScreen } from "./screens/Premium";
 import { DataScreen } from "./screens/DataScreen";
 import { Appearance } from "./screens/Appearance";
 import { closeHoldMenu, holdMenu, HoldMenuLayer, installHoldGestures } from "./gestures";
+import { t, type Key } from "./i18n";
+import { setThemeTranslator } from "./themes";
 
-const TABS: { id: Tab; label: string; icon: IconName }[] = [
-  { id: "today", label: "Сегодня", icon: "today" },
-  { id: "gym", label: "Зал", icon: "gym" },
-  { id: "notes", label: "Заметки", icon: "notes" },
-  { id: "progress", label: "Прогресс", icon: "progress" },
-  { id: "profile", label: "Профиль", icon: "profile" },
+setThemeTranslator(t);
+
+const TABS: { id: Tab; label: Key; icon: IconName }[] = [
+  { id: "today", label: "tab.today", icon: "today" },
+  { id: "gym", label: "tab.gym", icon: "gym" },
+  { id: "notes", label: "tab.notes", icon: "notes" },
+  { id: "progress", label: "tab.progress", icon: "progress" },
+  { id: "profile", label: "tab.profile", icon: "profile" },
 ];
 
 function onBack() {
@@ -35,12 +39,12 @@ function onBack() {
 function TabBar() {
   return (
     <nav class="tabbar">
-      {TABS.map((t) => (
-        <button key={t.id} class={tab.value === t.id ? "on" : ""} onClick={() => { haptic(); goTab(t.id); }}>
-          {t.id === "profile" && tgUser
+      {TABS.map((b) => (
+        <button key={b.id} class={tab.value === b.id ? "on" : ""} onClick={() => { haptic(); goTab(b.id); }}>
+          {b.id === "profile" && tgUser
             ? <Avatar name={tgUser.first_name} photo={tgUser.photo_url} seed={tgUser.id} size={24} />
-            : <Icon name={t.icon} size={23} />}
-          <span>{t.label}</span>
+            : <Icon name={b.icon} size={23} />}
+          <span>{t(b.label)}</span>
         </button>
       ))}
     </nav>

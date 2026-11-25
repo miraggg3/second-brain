@@ -96,15 +96,15 @@ small { font-size: 13px; }
 
 .section-title { font-size: 19px; font-weight: 720; letter-spacing: -0.015em; margin: 26px 4px 12px; }
 .section-row { display: flex; align-items: baseline; justify-content: space-between; }
-.section-row .section-title { margin-right: auto; }
-.section-row > .small { margin-right: 4px; }
+.section-row .section-title { margin-inline-end: auto; }
+.section-row > .small { margin-inline-end: 4px; }
 
 /* ---------- cards & styles ---------- */
 
 .card {
   display: block;
   width: 100%;
-  text-align: left;
+  text-align: start;
   background: var(--card);
   border-radius: var(--r-card);
   box-shadow: var(--shadow);
@@ -321,7 +321,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 
 .banner {
   display: flex; align-items: center; gap: 12px;
-  width: 100%; text-align: left;
+  width: 100%; text-align: start;
   padding: 14px 16px;
   margin-bottom: 12px;
   border-radius: 18px;
@@ -362,7 +362,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .tile {
   display: flex; flex-direction: column; gap: 6px;
-  text-align: left;
+  text-align: start;
   padding: 14px;
   border-radius: var(--r-card);
   background: var(--card);
@@ -406,7 +406,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 
 .gym-banner, .start-card {
   display: flex; align-items: center; gap: 14px;
-  width: 100%; text-align: left;
+  width: 100%; text-align: start;
   margin: 12px 0;
   padding: 16px;
   border-radius: var(--r-card);
@@ -474,7 +474,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
   background: color-mix(in srgb, var(--c-gym) 12%, transparent);
   font-size: 15px;
 }
-.set-chip small { color: var(--c-gym); font-weight: 700; font-size: 11px; margin-right: 2px; }
+.set-chip small { color: var(--c-gym); font-weight: 700; font-size: 11px; margin-inline-end: 2px; }
 .set-chip b { font-weight: 720; }
 .set-chip.static { padding: 5px 10px; font-size: 14px; }
 
@@ -498,7 +498,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .heat-legend span { margin: 0 3px; }
 
 .history { padding: 0; overflow: hidden; }
-.history-head { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 14px 16px; }
+.history-head { display: flex; align-items: center; gap: 14px; width: 100%; text-align: start; padding: 14px 16px; }
 .history-head b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .history-head small { color: var(--muted); }
 .date-badge {
@@ -523,7 +523,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 
 .tracker { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
 .tracker + .tracker { border-top: 1px solid var(--line); }
-.tracker-main { flex: 1; min-width: 0; text-align: left; display: flex; flex-direction: column; }
+.tracker-main { flex: 1; min-width: 0; text-align: start; display: flex; flex-direction: column; }
 .tracker-main small { color: var(--muted); }
 
 /* ---------- empty ---------- */
@@ -611,13 +611,13 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .note > b { font-size: 16.5px; }
 .note p { color: var(--muted); font-size: 14.5px; line-height: 1.4; }
 .note-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
-.note-foot small { margin-left: auto; color: var(--muted); font-size: 12.5px; }
+.note-foot small { margin-inline-start: auto; color: var(--muted); font-size: 12.5px; }
 .tag-dot { font-size: 12.5px; font-weight: 600; color: hsl(var(--h) 65% 48%); }
 [data-mode="dark"] .tag-dot { color: hsl(var(--h) 75% 70%); }
 
 .fab {
   position: fixed;
-  right: max(18px, calc(50% - 262px));
+  inset-inline-end: max(18px, calc(50% - 262px));
   bottom: calc(96px + env(safe-area-inset-bottom));
   width: 60px; height: 60px;
   display: grid; place-items: center;
@@ -684,7 +684,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
   box-shadow: var(--shadow);
 }
 .profile-stats div { text-align: center; padding: 0 4px; }
-.profile-stats div + div { border-left: 1px solid var(--line); }
+.profile-stats div + div { border-inline-start: 1px solid var(--line); }
 .profile-stats b { display: block; font-size: 22px; font-weight: 760; }
 .profile-stats small { display: block; color: var(--muted); font-size: 11.5px; line-height: 1.25; }
 
@@ -718,7 +718,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .list { padding: 4px 0; }
 .row-item {
   display: flex; align-items: center; gap: 14px;
-  width: 100%; text-align: left;
+  width: 100%; text-align: start;
   padding: 12px 16px;
   color: var(--muted);
 }
@@ -756,7 +756,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .sw-card i { height: 16px; border-radius: 6px; }
 .sw-card em { height: 5px; width: 60%; border-radius: 3px; opacity: .5; }
 .sw-lock, .sw-check {
-  position: absolute; top: 8px; right: 8px;
+  position: absolute; top: 8px; inset-inline-end: 8px;
   width: 24px; height: 24px; border-radius: 50%;
   display: grid; place-items: center;
 }
@@ -766,7 +766,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .styles { display: grid; gap: 10px; }
 .style-opt {
   display: flex; align-items: center; gap: 14px;
-  width: 100%; text-align: left;
+  width: 100%; text-align: start;
   padding: 14px 16px;
   border-radius: 18px;
   background: var(--card);
@@ -786,7 +786,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 /* ---------- premium ---------- */
 
 .paywall { position: relative; }
-.close-float { position: absolute; top: 4px; right: 0; z-index: 2; }
+.close-float { position: absolute; top: 4px; inset-inline-end: 0; z-index: 2; }
 .paywall-hero { text-align: center; padding: 30px 10px 22px; }
 .paywall-hero h1 { font-size: 30px; font-weight: 790; letter-spacing: -0.03em; line-height: 1.1; margin: 16px 0 8px; }
 .paywall-hero p { color: var(--muted); }
@@ -811,7 +811,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .plan {
   position: relative;
   display: flex; align-items: center; gap: 14px;
-  width: 100%; text-align: left;
+  width: 100%; text-align: start;
   padding: 16px;
   border-radius: 20px;
   background: var(--card);
@@ -826,7 +826,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .price { display: inline-flex; align-items: center; gap: 3px; font-size: 18px; font-weight: 760; }
 .price .ico { color: var(--gold); }
 .plan-tag {
-  position: absolute; top: -10px; right: 16px;
+  position: absolute; top: -10px; inset-inline-end: 16px;
   padding: 3px 10px;
   border-radius: 999px;
   background: var(--grad-gold);
@@ -905,7 +905,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .sheet-field { display: block; margin-bottom: 14px; }
 .sheet-field > span { display: block; font-size: 13.5px; font-weight: 600; color: var(--muted); margin: 0 0 6px 4px; }
 .input-wrap { position: relative; }
-.input-wrap i { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--muted); }
+.input-wrap i { position: absolute; inset-inline-end: 16px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--muted); }
 .sheet-field input { font-size: 18px; }
 .sheet-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin-top: 6px; }
 .sheet-actions .btn + .btn { margin-top: 0; }
@@ -993,7 +993,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   width: 100%; min-height: 50px;
   padding: 0 16px;
-  font-size: 16.5px; text-align: left;
+  font-size: 16.5px; text-align: start;
   color: var(--text);
   transition: background .12s;
 }
@@ -1019,7 +1019,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
   border-radius: 18px;
   background: var(--card);
   box-shadow: var(--shadow);
-  text-align: left;
+  text-align: start;
   transition: transform .2s, box-shadow .2s, background .2s;
 }
 .folder b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
@@ -1040,7 +1040,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .tiles.editing .widget:nth-child(2n) .widget-body { animation-delay: -.16s; }
 @keyframes jiggle { from { transform: rotate(-1.1deg); } to { transform: rotate(1.1deg); } }
 .widget-remove {
-  position: absolute; top: -7px; left: -7px; z-index: 2;
+  position: absolute; top: -7px; inset-inline-start: -7px; z-index: 2;
   width: 26px; height: 26px; border-radius: 50%;
   display: grid; place-items: center;
   background: color-mix(in srgb, var(--text) 75%, var(--bg));
@@ -1057,7 +1057,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .tracker-tile { --c: var(--accent); }
 .tile-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .picker-list { display: grid; gap: 4px; margin-bottom: 12px; max-height: 55vh; overflow-y: auto; }
-.picker-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 4px; text-align: left; border-radius: 14px; }
+.picker-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 4px; text-align: start; border-radius: 14px; }
 .picker-item:active { background: var(--soft); }
 .picker-item small { display: block; }
 
@@ -1147,7 +1147,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .share-art.story .sa-tags span { font-size: 15px; padding: 6px 12px; }
 
 .sa-chart { margin-top: auto; color: var(--c); }
-.sa-chart small { display: block; margin-top: 6px; font-size: 11px; color: var(--muted); text-align: right; }
+.sa-chart small { display: block; margin-top: 6px; font-size: 11px; color: var(--muted); text-align: end; }
 .share-art.story .sa-chart small { font-size: 13px; }
 .sa-bars rect.on { fill: currentColor; opacity: .5; }
 .sa-bars rect.on.last { opacity: 1; }
@@ -1341,7 +1341,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 [data-style="clean"] .tracker + .tracker,
 [data-style="clean"] .row-item + .row-item,
 [data-style="clean"] .history-ex { border-top: var(--hairline); }
-[data-style="clean"] .profile-stats div + div { border-left: var(--hairline); }
+[data-style="clean"] .profile-stats div + div { border-inline-start: var(--hairline); }
 [data-style="clean"] .row-item:active,
 [data-style="clean"] .icon-btn:active { background: var(--soft); }
 [data-style="clean"] .habit-emoji,
@@ -1490,3 +1490,33 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 40%, transparent), color-mix(in srgb, var(--c-sleep) 35%, transparent));
 }
 .style-clean .style-demo i { border-radius: 7px; background: rgba(255, 255, 255, .6); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9); }
+
+/* =====================================================================
+   Right-to-left (Arabic). Layout uses logical properties (inline-start/end)
+   so it mirrors by itself; here are only the things that need a hand.
+   ===================================================================== */
+:root[lang="ar"] {
+  --font: "Noto Sans Arabic Variable", "Onest Variable", system-ui, sans-serif;
+}
+/* Arabic letters join: never space them apart */
+:root[lang="ar"] body, :root[lang="ar"] body * { letter-spacing: 0 !important; }
+:root[lang="ar"] body { line-height: 1.55; }
+/* forward arrows (rows, settings, banners) point left in RTL */
+[dir="rtl"] .ico-chevron { transform: scaleX(-1); }
+/* the editor "back" arrow is mirrored in LTR already, in RTL it points right */
+[dir="rtl"] .editor-top > .icon-btn:first-child .ico { transform: none; }
+/* the expand arrow in history is rotated, not mirrored */
+[dir="rtl"] .chev .ico-chevron { transform: none; }
+/* time keeps flowing left to right in activity grids and set chips */
+.heatmap, .heat-legend, .mini-days { direction: ltr; }
+[dir="rtl"] .hold-menu { transform-origin: top right; }
+[dir="rtl"] .hold-menu.up { transform-origin: bottom right; }
+
+/* ---------- language picker, icons next to section titles ---------- */
+.with-ico { display: flex; align-items: center; gap: 8px; }
+.section-title.with-ico .ico { color: var(--muted); }
+.lang-item { padding: 12px 8px; }
+.lang-item.on { background: var(--accent-soft); }
+.lang-item.on > .ico { color: var(--accent); }
+.lang-flag { font-size: 26px; line-height: 1; width: 34px; text-align: center; }
+.lang-item small { display: block; }

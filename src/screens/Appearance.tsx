@@ -7,22 +7,23 @@ import type { CardStyle, ThemeId } from "../types";
 import { closeOverlay, openOverlay } from "../nav";
 import { Icon, PageHead, toast } from "../ui";
 import { haptic } from "../telegram";
+import { t, type Key } from "../i18n";
 
 // Light/dark switch, free for everyone. "Авто" follows Telegram.
-const MODES: { id: ThemeId; label: string }[] = [
-  { id: "auto", label: "Авто" },
-  { id: "light", label: "Светлая" },
-  { id: "dark", label: "Тёмная" },
+const MODES: { id: ThemeId; label: Key }[] = [
+  { id: "auto", label: "appearance.themeAuto" },
+  { id: "light", label: "appearance.themeLight" },
+  { id: "dark", label: "appearance.themeDark" },
 ];
 
 export function ModeSwitch() {
   const theme = data.value.settings.theme;
   return (
-    <div class="segmented mode-switch" role="radiogroup" aria-label="Тема">
+    <div class="segmented mode-switch" role="radiogroup" aria-label={t("appearance.theme")}>
       {MODES.map((m) => (
         <button key={m.id} role="radio" aria-checked={theme === m.id} class={theme === m.id ? "on" : ""}
           onClick={() => { haptic(); update("settings", (x) => ({ ...x, theme: m.id })); }}>
-          {m.label}
+          {t(m.label)}
         </button>
       ))}
     </div>
@@ -37,7 +38,7 @@ function ThemeSwatch({ id }: { id: ThemeId }) {
 
   const pick = () => {
     if (locked) {
-      toast("Эта тема — в Premium");
+      toast(t("appearance.themePremium"));
       openOverlay({ name: "premium" });
       return;
     }
@@ -65,7 +66,7 @@ export function Appearance() {
 
   const pickStyle = (id: CardStyle, premium: boolean) => {
     if (premium && !isPremium.value) {
-      toast("Этот стиль — в Premium");
+      toast(t("appearance.stylePremium"));
       openOverlay({ name: "premium" });
       return;
     }
@@ -75,18 +76,18 @@ export function Appearance() {
 
   return (
     <>
-      <PageHead title="Оформление" sub="Профиль" right={
-        <button class="icon-btn round" aria-label="Закрыть" onClick={closeOverlay}><Icon name="close" size={20} /></button>} />
+      <PageHead title={t("appearance.title")} sub={t("tab.profile")} right={
+        <button class="icon-btn round" aria-label={t("common.close")} onClick={closeOverlay}><Icon name="close" size={20} /></button>} />
 
-      <h2 class="section-title">Светлая или тёмная</h2>
+      <h2 class="section-title">{t("appearance.lightOrDark")}</h2>
       <ModeSwitch />
 
-      <h2 class="section-title">Цветные темы</h2>
+      <h2 class="section-title">{t("appearance.colorThemes")}</h2>
       <div class="swatches">
         {THEME_ORDER.map((id) => <ThemeSwatch key={id} id={id} />)}
       </div>
 
-      <h2 class="section-title">Стиль карточек</h2>
+      <h2 class="section-title">{t("appearance.cardStyle")}</h2>
       <div class="styles">
         {STYLES.map((s) => (
           <button key={s.id} class={`style-opt style-${s.id} ${style === s.id ? "on" : ""}`} onClick={() => pickStyle(s.id, s.premium)}>
@@ -99,7 +100,7 @@ export function Appearance() {
           </button>
         ))}
       </div>
-      <p class="footnote">«Авто» и «Как в Telegram» следуют за светлой или тёмной темой твоего Telegram.</p>
+      <p class="footnote">{t("appearance.footnote")}</p>
     </>
   );
 }

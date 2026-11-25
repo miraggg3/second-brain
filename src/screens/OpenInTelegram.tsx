@@ -2,6 +2,8 @@
 // (normal browser). The app needs Telegram: user, storage and payments
 // come from it, and the server only answers requests signed by Telegram.
 
+import { t } from "../i18n";
+
 const BOT: string = (import.meta.env.VITE_BOT_USERNAME ?? "").replace(/^@/, "");
 
 export function OpenInTelegram() {
@@ -10,11 +12,11 @@ export function OpenInTelegram() {
   return (
     <main class="open-in-tg">
       <div class="open-in-tg-icon" aria-hidden="true">🧠</div>
-      <h1>Второй мозг</h1>
-      <p>Это приложение работает внутри Telegram.<br />Открой его через бота.</p>
+      <h1>{t("app.name")}</h1>
+      <p>{t("app.onlyInTelegram")}<br />{t("app.openViaBot")}</p>
       {link
-        ? <a class="btn big" href={link}>Открыть в Telegram</a>
-        : <p class="muted small">Найди бота в Telegram и нажми «Открыть».</p>}
+        ? <a class="btn big" href={link}>{t("app.openInTelegram")}</a>
+        : <p class="muted small">{t("app.findBot")}</p>}
     </main>
   );
 }

@@ -1,0 +1,32 @@
+import type { Entry } from "..";
+import type ru from "../ru/profile";
+
+export default {
+  "profile.achFirstStep": "First step",
+  "profile.achHooked": "Hooked",
+  "profile.achIron": "Made of iron",
+  "profile.achWillWeek": "Week of willpower",
+  "profile.achNoMiss": "A month, no misses",
+  "profile.achThinker": "Thinker",
+  "profile.achFish": "Like a fish in water",
+  "profile.achSleepy": "Sleepyhead",
+  "profile.workoutsN": { one: "{n} workout", other: "{n} workouts" },
+  "profile.habitRowN": { one: "a habit {n} day in a row", other: "a habit {n} days in a row" },
+  "profile.notesN": { one: "{n} note", other: "{n} notes" },
+  "profile.waterDaysN": { one: "water goal for {n} day", other: "water goal for {n} days" },
+  "profile.sleepLogsN": { one: "log sleep {n} time", other: "log sleep {n} times" },
+  "profile.waterGoal": "Water goal",
+  "profile.perDay": "Per day",
+  "profile.daysWithUs": { one: "day with us", other: "days with us" },
+  "profile.workouts": { one: "workout", other: "workouts" },
+  "profile.notes": { one: "note", other: "notes" },
+  "profile.bestStreak": "best streak",
+  "profile.achievements": "Achievements",
+  "profile.earnedOf": "{earned} of {total}",
+  "profile.appearance": "Appearance",
+  "profile.dataTransfer": "Data transfer",
+  "profile.backupFrom": "backup from {date}",
+  "profile.noBackups": "no backups yet",
+  "profile.waterPerDay": "{v} L a day",
+  "profile.footnote": "All entries are stored only on this device. Delete Telegram and they're gone too. Make backups in “Data transfer”.",
+} satisfies Record<keyof typeof ru, Entry>;

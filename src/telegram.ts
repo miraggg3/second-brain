@@ -24,6 +24,7 @@ export interface TgThemeParams {
 export interface TgWebAppUser {
   id: number;
   first_name: string;
+  language_code?: string;
   last_name?: string;
   username?: string;
   photo_url?: string;

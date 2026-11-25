@@ -7,6 +7,7 @@ import { data, isPremium, set } from "./store";
 import { canUse, hapticOk, inTelegram, tg } from "./telegram";
 import { toast } from "./ui";
 import { openOverlay } from "./nav";
+import { locale, t } from "./i18n";
 
 export type Plan = "month" | "lifetime" | "tip";
 
@@ -34,26 +35,26 @@ export async function refreshPremium() {
 }
 
 export async function buy(plan: Plan) {
-  if (!inTelegram) return toast("Оплата работает только внутри Telegram");
-  if (!serverOnline.value) return toast("Оплата пока недоступна: сервер бота не подключён");
-  if (!canUse("6.1")) return toast("Обнови Telegram, чтобы оплатить");
+  if (!inTelegram) return toast(t("premium.onlyInTelegram"));
+  if (!serverOnline.value) return toast(t("premium.serverOffline"));
+  if (!canUse("6.1")) return toast(t("premium.updateTelegram"));
   try {
     const { link } = await api<{ link: string }>("/api/invoice", { plan });
     tg!.openInvoice(link, async (status) => {
       if (status === "paid") {
         hapticOk();
-        toast(plan === "tip" ? "Спасибо за поддержку! 💛" : "Premium активирован ✨");
+        toast(plan === "tip" ? t("premium.thanks") : t("premium.activated"));
         // the bot receives the payment a moment later: ask twice
         await refreshPremium();
         setTimeout(refreshPremium, 3000);
       } else if (status === "failed") {
-        toast("Платёж не прошёл");
+        toast(t("premium.failed"));
       }
     });
   } catch (e) {
     toast(e instanceof ApiError && e.message === "already"
-      ? "У тебя уже Premium навсегда ✨"
-      : "Сервер недоступен, попробуй позже");
+      ? t("premium.alreadyLifetime")
+      : t("premium.serverDown"));
   }
 }
 
@@ -67,9 +68,9 @@ export function requirePremium(reason: string): boolean {
 
 export function premiumStatusText(): string {
   const p = data.value.premium;
-  if (p.lifetime) return "Premium навсегда";
+  if (p.lifetime) return t("premium.statusLifetime");
   if (p.until > Date.now()) {
-    return `Premium до ${new Date(p.until).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}`;
+    return t("premium.statusUntil", { date: new Date(p.until).toLocaleDateString(locale.value, { day: "numeric", month: "long" }) });
   }
-  return "Бесплатная версия";
+  return t("premium.statusFree");
 }
