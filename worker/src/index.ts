@@ -5,6 +5,7 @@
 // - POST /api/invoice    Telegram Stars invoice link
 // - POST /api/send-file  bot sends a backup file to the user's own chat
 // - POST /api/download   one-time link for Telegram's native "download file" dialog
+// - POST /api/share      prepared message with an "Открыть" button for WebApp.shareMessage
 // - GET  /dl/<token>/... serves that file once, then forgets it (kept at most 5 minutes)
 // - POST /bot            Telegram webhook (payments, /start, /paysupport, /terms, /refund)
 // - GET  /setup?secret=  one-time: registers the webhook, commands and menu button
@@ -230,7 +231,34 @@ async function handleApi(req: Request, env: Env, path: string, origin: string): 
     return json(200, { url: `${origin}/dl/${token}/${encodeURIComponent(file.name)}` });
   }
 
+  if (path === "/api/share") {
+    // a message the user can send to any chat via WebApp.shareMessage
+    const text = typeof body.text === "string" ? body.text.trim().slice(0, 1000) : "";
+    if (!text) return json(400, { error: "empty" });
+    const prepared = await tg<{ id: string }>(env, "savePreparedInlineMessage", {
+      user_id: user.id,
+      result: {
+        type: "article",
+        id: crypto.randomUUID(),
+        title: "Поделиться",
+        input_message_content: { message_text: text },
+        reply_markup: { inline_keyboard: [[{ text: "🧠 Открыть", url: await appLink(env) }]] },
+      },
+      allow_user_chats: true,
+      allow_group_chats: true,
+      allow_channel_chats: true,
+    });
+    return json(200, { id: prepared.id });
+  }
+
   return json(404, { error: "not found" });
+}
+
+// t.me link that opens the bot's main Mini App; username asked once per worker instance
+let botUsername: string | null = null;
+async function appLink(env: Env): Promise<string> {
+  botUsername ??= (await tg<{ username: string }>(env, "getMe")).username;
+  return `https://t.me/${botUsername}?startapp`;
 }
 
 async function handleDownload(env: Env, path: string): Promise<Response> {

@@ -10,6 +10,7 @@ import { confirmAsk, haptic, hapticOk, tgUser } from "../telegram";
 import { FREE_HABITS, requirePremium } from "../premium";
 import { goTab, openOverlay } from "../nav";
 import { startWorkout } from "./Gym";
+import { longPressShare } from "../share";
 
 export const MOODS = [
   { emoji: "😫", label: "Тяжело" },
@@ -75,8 +76,11 @@ async function deleteHabit(h: Habit) {
 function HabitRow({ h, editing }: { h: Habit; editing: boolean }) {
   const done = !!h.done[dayKey()];
   const streak = habitStreak(h);
+  const shareText = () => streak > 0
+    ? `${h.emoji || "✨"} ${h.name}: ${streak} ${plural(streak, "день", "дня", "дней")} подряд 🔥`
+    : `${h.emoji || "✨"} Начинаю новую привычку: ${h.name}`;
   return (
-    <div class={`habit ${done ? "done" : ""}`}>
+    <div class={`habit ${done ? "done" : ""}`} {...longPressShare(shareText)}>
       <span class="habit-emoji">{h.emoji || "✨"}</span>
       <span class="habit-text">
         <b>{h.name}</b>

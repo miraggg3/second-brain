@@ -49,6 +49,7 @@ export interface TgWebApp {
   openInvoice(url: string, cb: (status: "paid" | "cancelled" | "failed" | "pending") => void): void;
   openTelegramLink(url: string): void;
   downloadFile?(params: { url: string; file_name: string }, cb?: (accepted: boolean) => void): void;
+  shareMessage?(msgId: string, cb?: (sent: boolean) => void): void; // Telegram 8.0+
   BackButton: { show(): void; hide(): void; onClick(cb: () => void): void };
   HapticFeedback: {
     impactOccurred(style: "light" | "medium" | "heavy" | "rigid" | "soft"): void;
