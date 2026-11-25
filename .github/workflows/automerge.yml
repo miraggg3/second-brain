@@ -1,0 +1,52 @@
+# Merges a pull request automatically once its build succeeded, then deploys.
+#
+# Runs after "Deploy to GitHub Pages" finishes for a pull request. Only PRs
+# from branches of this repository, opened by the repository owner and not
+# marked as draft are merged; forks and other people's PRs are never merged.
+#
+# A merge done with GITHUB_TOKEN does not trigger other workflows, so the
+# deploy of main is started explicitly with workflow_dispatch.
+name: Auto-merge
+
+on:
+  workflow_run:
+    workflows: ["Deploy to GitHub Pages"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.actor.login == github.repository_owner
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Find the open pull request of the built commit
+        id: pr
+        run: |
+          pr=$(gh pr list --state open --head "$HEAD_BRANCH" \
+                 --json number,headRefOid,isDraft,author \
+                 --jq ".[] | select(.headRefOid == \"$HEAD_SHA\" and (.isDraft | not) and .author.login == \"${{ github.repository_owner }}\") | .number" \
+               | head -n1)
+          echo "number=$pr" >> "$GITHUB_OUTPUT"
+          if [ -z "$pr" ]; then echo "No matching open PR (draft, newer commit or other author) - nothing to merge."; fi
+
+      - name: Merge
+        if: steps.pr.outputs.number != ''
+        # --match-head-commit: do not merge if a newer commit was pushed meanwhile
+        run: gh pr merge "${{ steps.pr.outputs.number }}" --merge --delete-branch --match-head-commit "$HEAD_SHA"
+
+      - name: Deploy main
+        if: steps.pr.outputs.number != ''
+        run: gh workflow run "Deploy to GitHub Pages" --ref main
