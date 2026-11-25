@@ -935,6 +935,28 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
   user-select: none;
 }
 
+/* ---------- picture for sharing (off-screen, see share.ts) ---------- */
+.share-frame {
+  position: fixed; left: -10000px; top: 0;
+  padding: 20px 20px 16px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+}
+.share-frame > .card, .share-frame > .stat-row, .share-frame > .achievement,
+.share-frame > .profile-stats, .share-frame > .note, .share-frame > .achievements { margin: 0; }
+.share-frame .row-actions, .share-frame .card-head .icon-btn, .share-frame .chev { display: none !important; }
+.share-frame .achievements {
+  grid-auto-flow: row; grid-template-columns: repeat(2, 1fr);
+  overflow: visible; margin: 0; padding: 0;
+}
+.share-frame-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 14px; padding: 0 4px;
+  font-size: 13px; color: var(--muted);
+}
+.share-frame-foot b { color: var(--text); font-weight: 600; }
+
 /* ---------- opened outside Telegram ---------- */
 
 .open-in-tg {

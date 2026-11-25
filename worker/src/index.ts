@@ -6,12 +6,15 @@
 // - POST /api/send-file  bot sends a backup file to the user's own chat
 // - POST /api/download   one-time link for Telegram's native "download file" dialog
 // - POST /api/share      prepared message with an "Открыть" button for WebApp.shareMessage
+// - POST /api/share-photo the same with a picture of a card (kept one day in KV)
+// - GET  /img/<id>.jpg   that picture, for Telegram
 // - GET  /dl/<token>/... serves that file once, then forgets it (kept at most 5 minutes)
 // - POST /bot            Telegram webhook (payments, /start, /paysupport, /terms, /refund)
 // - GET  /setup?secret=  one-time: registers the webhook, commands and menu button
 //
-// User notes and trackers are never stored here. KV keeps only payments
-// and, for up to 5 minutes, a file the user asked to download.
+// User notes and trackers are never stored here. KV keeps only payments,
+// for up to 5 minutes a file the user asked to download and for one day a
+// picture of a card the user chose to share.
 
 export interface Env {
   DB: KVNamespace;
@@ -23,6 +26,7 @@ export interface Env {
 
 const DAY = 86_400_000;
 const MAX_FILE = 15 * 1024 * 1024;
+const MAX_IMAGE = 2 * 1024 * 1024;
 
 // ---------- plans (prices in Telegram Stars) ----------
 
@@ -251,7 +255,49 @@ async function handleApi(req: Request, env: Env, path: string, origin: string): 
     return json(200, { id: prepared.id });
   }
 
+  if (path === "/api/share-photo") {
+    // picture of a card: kept one day so Telegram can fetch it, then sent
+    // by the user through WebApp.shareMessage as a photo with a button
+    const { image, caption } = body;
+    if (typeof image !== "string") return json(400, { error: "bad image" });
+    let bytes: Uint8Array;
+    try {
+      bytes = Uint8Array.from(atob(image), (c) => c.charCodeAt(0));
+    } catch {
+      return json(400, { error: "bad image" });
+    }
+    // JPEG only (starts with FF D8), at most 2 MB
+    if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return json(400, { error: "not jpeg" });
+    if (bytes.length > MAX_IMAGE) return json(413, { error: "too big" });
+    const token = crypto.randomUUID();
+    await env.DB.put(`img:${token}`, bytes, { expirationTtl: DAY / 1000 });
+    const url = `${origin}/img/${token}.jpg`;
+    const prepared = await tg<{ id: string }>(env, "savePreparedInlineMessage", {
+      user_id: user.id,
+      result: {
+        type: "photo",
+        id: token,
+        photo_url: url,
+        thumbnail_url: url,
+        caption: String(caption ?? "").slice(0, 1000),
+        reply_markup: { inline_keyboard: [[{ text: "🧠 Открыть", url: await appLink(env) }]] },
+      },
+      allow_user_chats: true,
+      allow_group_chats: true,
+      allow_channel_chats: true,
+    });
+    return json(200, { id: prepared.id });
+  }
+
   return json(404, { error: "not found" });
+}
+
+async function handleImage(env: Env, path: string): Promise<Response> {
+  const m = /^\/img\/([0-9a-f-]{36})\.jpg$/.exec(path);
+  if (!m) return new Response("Not found", { status: 404 });
+  const data = await env.DB.get(`img:${m[1]}`, "arrayBuffer");
+  if (!data) return new Response("Not found", { status: 404 });
+  return new Response(data, { headers: { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=86400" } });
 }
 
 // t.me link that opens the bot's main Mini App; username asked once per worker instance
@@ -409,6 +455,7 @@ export default {
     try {
       if (url.pathname.startsWith("/api/")) return withCors(await handleApi(req, env, url.pathname, url.origin), env);
       if (url.pathname.startsWith("/dl/") && req.method === "GET") return await handleDownload(env, url.pathname);
+      if (url.pathname.startsWith("/img/") && req.method === "GET") return await handleImage(env, url.pathname);
 
       if (url.pathname === "/bot" && req.method === "POST") {
         const secret = req.headers.get("X-Telegram-Bot-Api-Secret-Token") ?? "";

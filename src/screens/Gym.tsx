@@ -11,7 +11,7 @@ import { dayKey, newId, num, plural, startOfWeek } from "../utils";
 import { Heatmap } from "../charts";
 import { Card, Empty, Icon, PageHead, Stepper, toast } from "../ui";
 import { confirmAsk, haptic, hapticOk } from "../telegram";
-import { longPressShare, shareText } from "../share";
+import { longPressShare, shareFrom } from "../share";
 
 function workoutShareText(w: Workout): string {
   const date = new Date(w.start).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
@@ -202,7 +202,7 @@ function Overview() {
       </div>
 
       <Card title="Посещения" icon="today" action={
-        <button class="icon-btn" aria-label="Поделиться" onClick={() => shareText(statsText())}><Icon name="share" size={19} /></button>}>
+        <button class="icon-btn" aria-label="Поделиться" onClick={(e) => shareFrom(e.currentTarget, ".card", statsText())}><Icon name="share" size={19} /></button>}>
         <Heatmap levelOf={(d) => Math.min(3, (perDay[d] ?? 0) * 2)} color="var(--c-gym)" />
         <div class="heat-legend"><span>меньше</span><i class="l0" /><i class="l1" /><i class="l2" /><i class="l3" /><span>больше</span></div>
       </Card>
@@ -235,7 +235,7 @@ function Overview() {
                   </div>
                 ))}
                 <div class="row-actions">
-                  <button class="text-btn" onClick={() => shareText(workoutShareText(w))}><Icon name="share" size={16} /> Поделиться</button>
+                  <button class="text-btn" onClick={(e) => shareFrom(e.currentTarget, ".history", workoutShareText(w))}><Icon name="share" size={16} /> Поделиться</button>
                   <button class="text-btn danger" onClick={() => remove(w.id)}><Icon name="trash" size={16} /> Удалить</button>
                 </div>
               </div>

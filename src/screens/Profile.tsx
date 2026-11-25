@@ -3,7 +3,7 @@
 
 import { data, isPremium, update } from "../store";
 import { ModeSwitch } from "./Appearance";
-import { longPressShare, shareText } from "../share";
+import { longPressShare, shareCard } from "../share";
 import { finishedWorkouts, habitStreak } from "../domain";
 import { dayKey, daysAgo, formatDate, num, parseNum, plural } from "../utils";
 import { ask, Avatar, Icon, Row, type IconName } from "../ui";
@@ -97,7 +97,8 @@ export function Profile() {
         <h2 class="section-title">Достижения</h2>
         <span class="muted small">{earned} из {list.length}</span>
         <button class="icon-btn" aria-label="Поделиться достижениями"
-          onClick={() => shareText(`🏆 ${earned} из ${list.length} достижений: ${list.filter((a) => a.done).map((a) => a.title).join(", ") || "пока впереди"}`)}>
+          onClick={() => shareCard(document.querySelector<HTMLElement>(".achievements"),
+            `🏆 ${earned} из ${list.length} достижений: ${list.filter((a) => a.done).map((a) => a.title).join(", ") || "пока впереди"}`)}>
           <Icon name="share" size={19} />
         </button>
       </div>
