@@ -3,7 +3,7 @@
 
 import { data, isPremium, update } from "../store";
 import { ModeSwitch } from "./Appearance";
-import { longPressShare, shareCard } from "../share";
+import { shareCard } from "../share";
 import { finishedWorkouts, habitStreak } from "../domain";
 import { dayKey, daysAgo, formatDate, num, parseNum, plural } from "../utils";
 import { ask, Avatar, Icon, Row, type IconName } from "../ui";
@@ -83,10 +83,7 @@ export function Profile() {
         </button>
       </section>
 
-      <div class="profile-stats" {...longPressShare(() => [
-        `🧠 ${num(days, 0)} ${plural(days, "день", "дня", "дней")} веду свой второй мозг`,
-        `🏋️ ${workouts} ${plural(workouts, "тренировка", "тренировки", "тренировок")} · 📝 ${d.notes.length} ${plural(d.notes.length, "заметка", "заметки", "заметок")} · 🔥 лучшая серия ${bestNow}`,
-      ].join("\n"))}>
+      <div class="profile-stats">
         <div><b>{num(days, 0)}</b><small>{plural(days, "день", "дня", "дней")} с нами</small></div>
         <div><b>{workouts}</b><small>{plural(workouts, "тренировка", "тренировки", "тренировок")}</small></div>
         <div><b>{d.notes.length}</b><small>{plural(d.notes.length, "заметка", "заметки", "заметок")}</small></div>
@@ -97,15 +94,13 @@ export function Profile() {
         <h2 class="section-title">Достижения</h2>
         <span class="muted small">{earned} из {list.length}</span>
         <button class="icon-btn" aria-label="Поделиться достижениями"
-          onClick={() => shareCard(document.querySelector<HTMLElement>(".achievements"),
-            `🏆 ${earned} из ${list.length} достижений: ${list.filter((a) => a.done).map((a) => a.title).join(", ") || "пока впереди"}`)}>
+          onClick={() => shareCard(document.querySelector<HTMLElement>(".achievements"))}>
           <Icon name="share" size={19} />
         </button>
       </div>
       <div class="achievements">
         {list.map((a) => (
-          <div key={a.id} class={`achievement ${a.done ? "done" : ""}`} style={{ "--ach": a.color }}
-            {...longPressShare(() => a.done ? `🏆 Новое достижение: «${a.title}» (${a.note})` : `🎯 Иду к достижению «${a.title}»: ${a.note}`)}>
+          <div key={a.id} class={`achievement ${a.done ? "done" : ""}`} style={{ "--ach": a.color }}>
             <span class="ach-ico"><Icon name={a.done ? a.icon : "lock"} size={22} /></span>
             <b>{a.title}</b>
             <small>{a.note}</small>
