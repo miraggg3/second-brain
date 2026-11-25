@@ -11,7 +11,7 @@
 // 3. if the phone can't share files: Telegram's "forward to…" dialog with
 //    the card's text and a link (the only case without a picture).
 
-import { domToJpeg } from "modern-screenshot";
+import { domToJpeg, domToPng } from "modern-screenshot";
 import { api, blobToBase64, serverOnline } from "./api";
 import { canUse, haptic, inTelegram, tg } from "./telegram";
 import { toast } from "./ui";
@@ -32,7 +32,13 @@ const NOT_SHAREABLE = "input, textarea, select, .sheet, .tabbar, .fab, .stepper,
 
 // ---------- picture of a card ----------
 
-async function cardImage(el: HTMLElement): Promise<Blob> {
+// Telegram resizes photos to 1280 px on the longest side and re-encodes them.
+// Rendering exactly 1280 px avoids the resize, PNG avoids a second lossy step.
+const TELEGRAM_PHOTO_PX = 1280;
+
+type Format = "png" | "jpeg";
+
+async function cardImage(el: HTMLElement, format: Format): Promise<Blob> {
   const width = Math.round(el.getBoundingClientRect().width);
   const frame = document.createElement("div");
   frame.className = "share-frame";
@@ -49,7 +55,11 @@ async function cardImage(el: HTMLElement): Promise<Blob> {
 
   try {
     const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#f2f2f7";
-    const dataUrl = await domToJpeg(frame, { scale: 3, quality: 0.92, backgroundColor: bg });
+    const box = frame.getBoundingClientRect();
+    const scale = TELEGRAM_PHOTO_PX / Math.max(box.width, box.height);
+    const dataUrl = format === "png"
+      ? await domToPng(frame, { scale, backgroundColor: bg })
+      : await domToJpeg(frame, { scale, quality: 0.95, backgroundColor: bg });
     return await (await fetch(dataUrl)).blob();
   } finally {
     frame.remove();
@@ -65,11 +75,13 @@ function wrapInCard(node: HTMLElement): HTMLElement {
 
 // ---------- sending ----------
 
+const botShareAvailable = () => serverOnline.value && canUse("8.0") && !!tg!.shareMessage;
+
+// Telegram's photo results need a JPEG
 async function viaBot(image: Blob): Promise<boolean> {
-  if (!(serverOnline.value && canUse("8.0") && tg!.shareMessage)) return false;
   try {
     const { id } = await api<{ id: string }>("/api/share-photo", { image: await blobToBase64(image) });
-    tg!.shareMessage(id);
+    tg!.shareMessage!(id);
     return true;
   } catch (e) {
     console.warn("share via bot failed:", (e as Error).message);
@@ -78,7 +90,7 @@ async function viaBot(image: Blob): Promise<boolean> {
 }
 
 async function viaShareSheet(image: Blob): Promise<boolean> {
-  const file = new File([image], "second-brain.jpg", { type: "image/jpeg" });
+  const file = new File([image], "second-brain.png", { type: "image/png" });
   if (!navigator.canShare?.({ files: [file] })) return false;
   try {
     await navigator.share({ files: [file] }); // picture only: no extra text message
@@ -106,9 +118,8 @@ export async function shareCard(el: HTMLElement | null) {
   busy = true;
   haptic("medium");
   try {
-    const image = await cardImage(el);
-    if (await viaBot(image)) return;
-    if (await viaShareSheet(image)) return;
+    if (botShareAvailable() && (await viaBot(await cardImage(el, "jpeg")))) return;
+    if (await viaShareSheet(await cardImage(el, "png"))) return;
     shareText(textOf(el));
   } catch (e) {
     console.warn("share failed:", (e as Error).message);
