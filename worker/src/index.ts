@@ -17,6 +17,8 @@
 // for up to 5 minutes a file the user asked to download and for one day a
 // picture of a card the user chose to share.
 
+import { LANGS, langOf, texts, type Lang } from "./texts";
+
 export interface Env {
   DB: KVNamespace;
   BOT_TOKEN: string;
@@ -33,24 +35,18 @@ const MAX_IMAGE = 2 * 1024 * 1024;
 
 type PlanId = "month" | "lifetime" | "tip";
 
-const PLANS: Record<PlanId, { amount: number; title: string; description: string; period?: number }> = {
-  month: {
-    amount: 99,
-    title: "Second Brain Premium · месяц",
-    description: "Все темы, свои трекеры, безлимит привычек, рекорды в зале. Продлевается каждые 30 дней, отменить можно в любой момент.",
-    period: 30 * 24 * 60 * 60, // Stars subscriptions must be exactly 30 days
-  },
-  lifetime: {
-    amount: 499,
-    title: "Second Brain Premium · навсегда",
-    description: "Все функции Premium навсегда, одним платежом.",
-  },
-  tip: {
-    amount: 50,
-    title: "Поддержать Second Brain",
-    description: "Спасибо, что помогаешь развивать проект 💛",
-  },
+const PLANS: Record<PlanId, { amount: number; period?: number }> = {
+  month: { amount: 99, period: 30 * 24 * 60 * 60 }, // Stars subscriptions must be exactly 30 days
+  lifetime: { amount: 499 },
+  tip: { amount: 50 },
 };
+
+function planText(id: PlanId, lang: Lang): { title: string; description: string } {
+  const x = texts(lang);
+  if (id === "month") return { title: x.planMonthTitle, description: x.planMonthDescription };
+  if (id === "lifetime") return { title: x.planLifetimeTitle, description: x.planLifetimeDescription };
+  return { title: x.planTipTitle, description: x.planTipDescription };
+}
 
 const isPlan = (v: unknown): v is PlanId => typeof v === "string" && Object.hasOwn(PLANS, v);
 
@@ -69,7 +65,7 @@ function putUser(env: Env, id: number | string, u: UserRecord) {
 
 // ---------- Telegram ----------
 
-interface TgUser { id: number; first_name?: string }
+interface TgUser { id: number; first_name?: string; language_code?: string }
 
 class TgError extends Error {
   code: number;
@@ -188,6 +184,7 @@ async function handleApi(req: Request, env: Env, path: string, origin: string): 
   }
   const user = await verifyInitData(body.initData, env.BOT_TOKEN);
   if (!user) return json(401, { error: "bad initData" });
+  const lang = langOf(user.language_code, body.lang);
 
   if (path === "/api/me") {
     const u = await getUser(env, user.id);
@@ -200,12 +197,13 @@ async function handleApi(req: Request, env: Env, path: string, origin: string): 
     if (!isPlan(planId)) return json(400, { error: "unknown plan" });
     if (planId !== "tip" && (await getUser(env, user.id)).lifetime) return json(409, { error: "already" });
     const plan = PLANS[planId];
+    const { title, description } = planText(planId, lang);
     const link = await tg<string>(env, "createInvoiceLink", {
-      title: plan.title,
-      description: plan.description,
+      title,
+      description,
       payload: `${planId}:${user.id}`,
       currency: "XTR", // Telegram Stars: no provider token needed
-      prices: [{ label: plan.title, amount: plan.amount }],
+      prices: [{ label: title, amount: plan.amount }],
       ...(plan.period ? { subscription_period: plan.period } : {}),
     });
     return json(200, { link });
@@ -245,9 +243,9 @@ async function handleApi(req: Request, env: Env, path: string, origin: string): 
       result: {
         type: "article",
         id: crypto.randomUUID(),
-        title: "Поделиться",
+        title: texts(lang).shareTitle,
         input_message_content: { message_text: text },
-        reply_markup: { inline_keyboard: [[{ text: "🧠 Открыть", url: await appLink(env) }]] },
+        reply_markup: { inline_keyboard: [[{ text: texts(lang).open, url: await appLink(env) }]] },
       },
       allow_user_chats: true,
       allow_group_chats: true,
@@ -278,7 +276,7 @@ async function handleApi(req: Request, env: Env, path: string, origin: string): 
         photo_url: url,
         thumbnail_url: url,
         caption: String(caption ?? "").slice(0, 1000),
-        reply_markup: { inline_keyboard: [[{ text: "🧠 Открыть", url: await appLink(env) }]] },
+        reply_markup: { inline_keyboard: [[{ text: texts(lang).open, url: await appLink(env) }]] },
       },
       allow_user_chats: true,
       allow_group_chats: true,
@@ -322,11 +320,15 @@ async function appLink(env: Env): Promise<string> {
   return `https://t.me/${botUsername}?startapp`;
 }
 
-async function handleDownload(env: Env, path: string): Promise<Response> {
+async function handleDownload(env: Env, path: string, acceptLanguage: string): Promise<Response> {
   const [, , token, name] = path.split("/");
   if (!token || !/^[0-9a-f-]{36}$/.test(token)) return new Response("Not found", { status: 404 });
   const data = await env.DB.get(`dl:${token}`, "arrayBuffer");
-  if (!data) return new Response("Ссылка устарела", { status: 410 });
+  if (!data) {
+    return new Response(texts(langOf(acceptLanguage.split(",")[0])).linkExpired, {
+      status: 410, headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
   await env.DB.delete(`dl:${token}`);
   const fileName = decodeURIComponent(name ?? "backup.json");
   return new Response(data, {
@@ -341,24 +343,10 @@ async function handleDownload(env: Env, path: string): Promise<Response> {
 
 // ---------- bot ----------
 
-const TEXTS = {
-  start:
-    "Привет! Это твой второй мозг 🧠\n\n" +
-    "• Заметки с тегами и экспортом в Obsidian\n" +
-    "• Журнал зала: подходы, веса, рекорды\n" +
-    "• Привычки, вода, сон, вес, настроение\n\n" +
-    "Все записи хранятся только на твоём устройстве. Перенести на другое: Профиль → Перенос данных.",
-  paysupport:
-    "Вопросы по оплате Telegram Stars: опиши проблему ответом на это сообщение — дату платежа и что купил. " +
-    "Ответим в течение 48 часов. Если Premium не включился, закрой и снова открой приложение.",
-  terms:
-    "Premium открывает дополнительные функции приложения. Подписка продлевается каждые 30 дней, " +
-    "отменить: Telegram → Настройки → Мои звёзды. Возврат — по запросу через /paysupport. " +
-    "Записи хранятся на устройстве пользователя, сервер их не хранит.",
-};
+// bot texts: ./texts.ts (ru, en, uk, ar)
 
-const openButton = (env: Env) => ({
-  reply_markup: { inline_keyboard: [[{ text: "🧠 Открыть", web_app: { url: env.WEBAPP_URL } }]] },
+const openButton = (env: Env, lang: Lang) => ({
+  reply_markup: { inline_keyboard: [[{ text: texts(lang).open, web_app: { url: env.WEBAPP_URL } }]] },
 });
 
 interface SuccessfulPayment {
@@ -382,7 +370,7 @@ async function onUpdate(env: Env, u: Update) {
     const ok = isPlan(planId) && q.currency === "XTR" && q.total_amount === PLANS[planId].amount && String(q.from.id) === uid;
     await tg(env, "answerPreCheckoutQuery", ok
       ? { pre_checkout_query_id: q.id, ok: true }
-      : { pre_checkout_query_id: q.id, ok: false, error_message: "Счёт устарел. Открой оплату в приложении заново." });
+      : { pre_checkout_query_id: q.id, ok: false, error_message: texts(langOf(q.from.language_code)).invoiceExpired });
     return;
   }
 
@@ -403,20 +391,30 @@ async function onUpdate(env: Env, u: Update) {
     }
     if (planId === "lifetime") rec.lifetime = true;
     await putUser(env, m.from.id, rec);
+    const lang = langOf(m.from.language_code);
+    const x = texts(lang);
     const text = planId === "tip"
-      ? "Спасибо за поддержку! 💛"
+      ? x.thanksTip
       : p.is_recurring && !p.is_first_recurring
-        ? "Подписка Premium продлена ⭐ Спасибо!"
-        : "Premium активирован ⭐ Открой приложение — всё уже работает.";
-    await tg(env, "sendMessage", { chat_id: m.chat.id, text, ...openButton(env) });
+        ? x.thanksRenewed
+        : x.thanksActivated;
+    await tg(env, "sendMessage", { chat_id: m.chat.id, text, ...openButton(env, lang) });
     return;
   }
 
   const [cmd = "", ...args] = (m.text ?? "").trim().split(/\s+/);
   const name = cmd.split("@")[0];
-  if (name === "/start") await tg(env, "sendMessage", { chat_id: m.chat.id, text: TEXTS.start, ...openButton(env) });
-  else if (name === "/paysupport") await tg(env, "sendMessage", { chat_id: m.chat.id, text: TEXTS.paysupport });
-  else if (name === "/terms") await tg(env, "sendMessage", { chat_id: m.chat.id, text: TEXTS.terms });
+  const lang = langOf(m.from?.language_code);
+  const x = texts(lang);
+  if (name === "/start") {
+    await tg(env, "sendMessage", { chat_id: m.chat.id, text: x.start, ...openButton(env, lang) });
+    // the menu button in this chat speaks the user's language too
+    await tg(env, "setChatMenuButton", {
+      chat_id: m.chat.id,
+      menu_button: { type: "web_app", text: x.open.replace(/^\S+\s/, ""), web_app: { url: env.WEBAPP_URL } },
+    }).catch(() => undefined);
+  } else if (name === "/paysupport") await tg(env, "sendMessage", { chat_id: m.chat.id, text: x.paysupport });
+  else if (name === "/terms") await tg(env, "sendMessage", { chat_id: m.chat.id, text: x.terms });
   else if (name === "/refund" && env.ADMIN_ID && String(m.from?.id) === env.ADMIN_ID) {
     const [uid, chargeId] = args;
     if (!uid || !chargeId) {
@@ -447,15 +445,23 @@ async function setup(env: Env, origin: string): Promise<Response> {
     secret_token: env.WEBHOOK_SECRET,
     allowed_updates: ["message", "pre_checkout_query"],
   });
-  await tg(env, "setMyCommands", {
-    commands: [
-      { command: "start", description: "Открыть второй мозг" },
-      { command: "paysupport", description: "Помощь с оплатой" },
-      { command: "terms", description: "Условия" },
-    ],
-  });
+  // English is the default for languages we don't have
+  for (const lang of [undefined, ...LANGS]) {
+    const x = texts(lang ?? "en");
+    const language_code = lang ? { language_code: lang } : {};
+    await tg(env, "setMyCommands", {
+      commands: [
+        { command: "start", description: x.cmdStart },
+        { command: "paysupport", description: x.cmdPaysupport },
+        { command: "terms", description: x.cmdTerms },
+      ],
+      ...language_code,
+    });
+    await tg(env, "setMyShortDescription", { short_description: x.shortDescription, ...language_code });
+    await tg(env, "setMyDescription", { description: x.description, ...language_code });
+  }
   await tg(env, "setChatMenuButton", {
-    menu_button: { type: "web_app", text: "Открыть", web_app: { url: env.WEBAPP_URL } },
+    menu_button: { type: "web_app", text: "Open", web_app: { url: env.WEBAPP_URL } },
   });
   return new Response("Готово: webhook, команды и кнопка меню настроены ✅", {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
@@ -469,7 +475,7 @@ export default {
     const url = new URL(req.url);
     try {
       if (url.pathname.startsWith("/api/")) return withCors(await handleApi(req, env, url.pathname, url.origin), env);
-      if (url.pathname.startsWith("/dl/") && req.method === "GET") return await handleDownload(env, url.pathname);
+      if (url.pathname.startsWith("/dl/") && req.method === "GET") return await handleDownload(env, url.pathname, req.headers.get("Accept-Language") ?? "");
       if (url.pathname.startsWith("/img/") && req.method === "GET") return await handleImage(env, url.pathname);
 
       if (url.pathname === "/bot" && req.method === "POST") {
