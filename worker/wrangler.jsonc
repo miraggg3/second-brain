@@ -4,9 +4,11 @@
   "name": "second-brain-bot",
   "main": "src/index.ts",
   "compatibility_date": "2025-06-01",
+  "workers_dev": true,
+  "preview_urls": false,
   "kv_namespaces": [
     // `npx wrangler kv namespace create DB` prints the id to paste here
-    { "binding": "DB", "id": "PASTE_KV_NAMESPACE_ID" }
+    { "binding": "DB", "id": "8a7a7c6ecbe6485887d5471c26eb8e0c" }
   ],
   "vars": {
     "WEBAPP_URL": "https://miraggg3.github.io/second-brain/",
