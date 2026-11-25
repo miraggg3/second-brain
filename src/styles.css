@@ -1067,44 +1067,115 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .share-art {
   width: 360px; height: 360px;
   display: flex; flex-direction: column;
-  padding: 18px;
-  background: var(--bg);
+  padding: 16px;
+  background:
+    radial-gradient(120% 70% at 100% 0%, color-mix(in srgb, var(--c) 22%, transparent), transparent 60%),
+    var(--bg);
   color: var(--text);
   font-family: var(--font);
   letter-spacing: -0.01em;
-}
-.share-art.story { height: 640px; padding: 28px 22px; }
-.sa-card {
-  flex: 1;
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 22px;
-  border-radius: 28px;
-  background: var(--card);
   overflow: hidden;
 }
-.share-art.story .sa-card { justify-content: center; gap: 12px; padding: 28px 24px; border-radius: 34px; }
-.sa-head { display: flex; align-items: center; gap: 10px; font-size: 17px; }
-.sa-head b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.share-art.story {
+  height: 640px; padding: 26px 20px 22px;
+  background:
+    radial-gradient(90% 45% at 100% 0%, color-mix(in srgb, var(--c) 35%, transparent), transparent 70%),
+    radial-gradient(80% 40% at 0% 100%, color-mix(in srgb, var(--c) 22%, transparent), transparent 70%),
+    var(--bg);
+}
+.sa-date { font-size: 15px; font-weight: 600; color: var(--muted); margin: 4px 6px 12px; }
+.sa-date::first-letter { text-transform: uppercase; }
+.sa-card {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 20px;
+  border-radius: 26px;
+  background: var(--card);
+  box-shadow: 0 10px 30px -14px rgba(0, 0, 0, .25);
+  overflow: hidden;
+}
+.share-art.story .sa-card { gap: 10px; padding: 22px 20px; border-radius: 32px; }
+
+.sa-head { display: flex; align-items: center; gap: 10px; font-size: 17px; line-height: 1.2; }
+.sa-head b {
+  font-weight: 650;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.share-art.story .sa-head { font-size: 21px; }
+.share-art.story .sa-head b { -webkit-line-clamp: 3; }
 .sa-emoji {
   width: 38px; height: 38px; border-radius: 12px; flex: none;
   display: grid; place-items: center; font-size: 21px;
   background: color-mix(in srgb, var(--c) 16%, transparent);
 }
-.sa-value { margin-top: 6px; font-size: 56px; font-weight: 750; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-.sa-value small { font-size: 18px; font-weight: 550; color: var(--muted); letter-spacing: 0; }
-.share-art.story .sa-value { font-size: 84px; }
+.share-art.story .sa-emoji { width: 48px; height: 48px; font-size: 27px; border-radius: 15px; }
+
+.sa-value {
+  margin-top: 4px;
+  font-weight: 760; line-height: 1; letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.sa-value small { font-size: 17px; font-weight: 550; color: var(--muted); letter-spacing: 0; }
+.sa-value.xl { font-size: 58px; }
+.sa-value.l { font-size: 48px; }
+.sa-value.m { font-size: 38px; }
+.sa-value.s { font-size: 30px; }
+.share-art.story .sa-value.xl { font-size: 96px; }
+.share-art.story .sa-value.l { font-size: 78px; }
+.share-art.story .sa-value.m { font-size: 58px; }
+.share-art.story .sa-value.s { font-size: 44px; }
 .share-art.story .sa-value small { font-size: 22px; }
-.sa-sub { font-size: 15px; color: var(--muted); }
+
+.sa-sub { font-size: 14.5px; color: var(--muted); line-height: 1.3; }
 .share-art.story .sa-sub { font-size: 18px; }
+
+.sa-text {
+  font-size: 15px; line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 7; -webkit-box-orient: vertical; overflow: hidden;
+}
+.share-art.story .sa-text { font-size: 19px; -webkit-line-clamp: 16; margin-top: 4px; }
+.sa-text.big { font-size: 24px; font-weight: 650; line-height: 1.25; letter-spacing: -0.015em; -webkit-line-clamp: 6; margin-top: 6px; }
+.share-art.story .sa-text.big { font-size: 34px; -webkit-line-clamp: 9; }
+.sa-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.sa-tags span {
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent);
+}
+.share-art.story .sa-tags span { font-size: 15px; padding: 6px 12px; }
+
 .sa-chart { margin-top: auto; color: var(--c); }
-.share-art.story .sa-chart { margin-top: 18px; }
-.sa-chart small { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); text-align: right; }
-.sa-bars rect.on { fill: currentColor; opacity: .55; }
+.sa-chart small { display: block; margin-top: 6px; font-size: 11px; color: var(--muted); text-align: right; }
+.share-art.story .sa-chart small { font-size: 13px; }
+.sa-bars rect.on { fill: currentColor; opacity: .5; }
 .sa-bars rect.on.last { opacity: 1; }
-.sa-bars rect.off { fill: color-mix(in srgb, var(--muted) 22%, transparent); }
-.sa-lines { list-style: none; margin: auto 0 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
-.sa-lines li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.share-art.story .sa-lines { margin-top: 18px; font-size: 17px; gap: 10px; }
+.sa-bars rect.off { fill: color-mix(in srgb, var(--muted) 18%, transparent); }
+.sa-line .stroke { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.sa-line .fill { fill: currentColor; opacity: .1; }
+.sa-line .dot { fill: var(--card); stroke: currentColor; stroke-width: 2; }
+.sa-line .dot.last { fill: currentColor; }
+.sa-empty {
+  margin-top: auto;
+  padding: 12px 14px; border-radius: 14px;
+  font-size: 14px; color: var(--muted);
+  background: color-mix(in srgb, var(--c) 8%, transparent);
+}
+.share-art.story .sa-empty { font-size: 17px; padding: 16px 18px; }
+
+.sa-lines { list-style: none; margin: auto 0 0; padding: 0; display: grid; gap: 5px; font-size: 13.5px; line-height: 1.3; }
+.sa-lines li {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.sa-lines li.sa-more { color: var(--muted); }
+.share-art.story .sa-lines { margin-top: 14px; font-size: 16px; gap: 6px; }
+.share-art.story .sa-lines li {
+  padding: 8px 12px; border-radius: 12px;
+  background: color-mix(in srgb, var(--c) 7%, transparent);
+}
+.share-art.story .sa-lines li.sa-more { background: none; padding: 4px 14px; }
 .sa-badge {
   align-self: flex-start;
   margin-top: 8px;
@@ -1120,7 +1191,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
   font-size: 12px; color: var(--muted);
 }
 .sa-foot b { color: var(--text); font-weight: 600; font-size: 13px; }
-.share-art.story .sa-foot { font-size: 14px; padding-top: 18px; }
+.share-art.story .sa-foot { font-size: 14px; padding-top: 16px; }
 .share-art.story .sa-foot b { font-size: 16px; }
 
 /* ---------- opened outside Telegram ---------- */

@@ -11,7 +11,7 @@ import { formatDate, newId, num, plural } from "../utils";
 import { ask, Empty, Icon, PageHead, toast } from "../ui";
 import { confirmAsk, haptic, hapticOk } from "../telegram";
 import { useHold, type MenuItem } from "../gestures";
-import { copyText, shareText } from "../share";
+import { copyText, shareImageItem, shareText } from "../share";
 
 const query = signal("");
 // selected folder: null = all notes
@@ -143,7 +143,8 @@ function FolderTile({ folder, count }: { folder: Folder | null; count: number })
   const on = currentFolder.value === id;
   const ref = useHold<HTMLButtonElement>({
     menu: folder ? () => [
-      { label: "Поделиться папкой", icon: "share", run: () => shareText(folderText(folder)) },
+      shareImageItem(`folder:${folder.id}`),
+      { label: "Поделиться текстом", icon: "share", run: () => shareText(folderText(folder)) },
       { label: "Копировать все заметки", icon: "copy", run: () => copyText(folderText(folder)) },
       { label: "Переименовать", icon: "edit", run: () => renameFolder(folder) },
       { label: "Удалить папку", icon: "trash", danger: true, run: () => deleteFolder(folder) },
@@ -187,7 +188,8 @@ function NoteRow({ note }: { note: Note }) {
   const ref = useHold<HTMLButtonElement>({
     menu: () => [
       { label: "Копировать", icon: "copy", run: () => copyText(note.text) },
-      { label: "Поделиться", icon: "share", run: () => shareText(note.text) },
+      { label: "Поделиться текстом", icon: "share", run: () => shareText(note.text) },
+      shareImageItem(`note:${note.id}`),
       { label: note.folder ? "Переместить в папку" : "В папку", icon: "folder", submenu: () => moveMenu(note) },
       { label: "Удалить", icon: "trash", danger: true, run: () => deleteNote(note) },
     ],
