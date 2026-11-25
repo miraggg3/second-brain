@@ -2,6 +2,7 @@
 // achievements and all settings.
 
 import { data, isPremium, update } from "../store";
+import { ModeSwitch } from "./Appearance";
 import { finishedWorkouts, habitStreak } from "../domain";
 import { dayKey, daysAgo, formatDate, num, parseNum, plural } from "../utils";
 import { ask, Avatar, Icon, Row, type IconName } from "../ui";
@@ -103,6 +104,7 @@ export function Profile() {
       </div>
 
       <h2 class="section-title">Настройки</h2>
+      <ModeSwitch />
       <div class="card list">
         <Row icon="palette" color="linear-gradient(135deg,#F0528C,#9B5CF6)" title="Оформление"
           sub={`${themeName(d.settings.theme)} · ${STYLES.find((s) => s.id === d.settings.style)?.name ?? ""}`}
