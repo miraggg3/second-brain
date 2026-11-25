@@ -932,11 +932,11 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 }
 
 /* =====================================================================
-   Style "clean" (default, shown as «Прозрачный»): layered glass design.
-   Navigation and controls float above the content as translucent glass:
-   strong blur + saturation of what is behind, a thin specular highlight on
-   the top edge and a soft shadow. A calm colored backdrop gives the glass
-   something to refract. Large radii, capsule-shaped controls.
+   Style "clean" (default, shown as «Прозрачный»): two layers.
+   Content (cards, lists) is solid on a plain gray/black background.
+   Only the floating control layer (tab bar, round buttons, FAB, sheets,
+   toasts) is glass: blur + saturation, a bright thin rim like a lens edge,
+   soft shadow. Large radii, capsule-shaped controls.
    System font of the device, own icons only: no Apple fonts or icons.
    ===================================================================== */
 
@@ -950,10 +950,10 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
   --hairline: 0.5px solid var(--line);
 
   /* glass material */
-  --glass: rgba(255, 255, 255, .58);
-  --glass-strong: rgba(255, 255, 255, .72);
-  --glass-edge: rgba(255, 255, 255, .85);
-  --glass-blur: blur(22px) saturate(190%);
+  --glass: rgba(255, 255, 255, .62);
+  --glass-strong: rgba(255, 255, 255, .78);
+  --glass-edge: rgba(255, 255, 255, .95);
+  --glass-blur: blur(14px) saturate(200%) brightness(1.04);
   --glass-shadow:
     inset 0 1px 0 var(--glass-edge),
     inset 0 0 0 .5px rgba(255, 255, 255, .45),
@@ -962,9 +962,9 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
   --shadow: var(--glass-shadow);
 }
 [data-mode="dark"][data-style="clean"] {
-  --glass: rgba(44, 44, 48, .52);
-  --glass-strong: rgba(58, 58, 62, .66);
-  --glass-edge: rgba(255, 255, 255, .16);
+  --glass: rgba(40, 40, 44, .55);
+  --glass-strong: rgba(70, 70, 76, .6);
+  --glass-edge: rgba(255, 255, 255, .28);
   --glass-shadow:
     inset 0 1px 0 var(--glass-edge),
     inset 0 0 0 .5px rgba(255, 255, 255, .08),
@@ -973,21 +973,10 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 
 [data-style="clean"] body { font-size: 17px; line-height: 1.35; letter-spacing: -0.01em; font-feature-settings: normal; }
 
-/* calm colored backdrop behind everything */
-[data-style="clean"] .backdrop {
-  display: block;
-  position: fixed; inset: -10%;
-  z-index: 0;
-  background:
-    radial-gradient(45% 35% at 10% 8%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
-    radial-gradient(40% 35% at 95% 30%, color-mix(in srgb, var(--c-sleep) 20%, transparent), transparent 70%),
-    radial-gradient(45% 40% at 30% 75%, color-mix(in srgb, var(--c-weight) 16%, transparent), transparent 70%),
-    radial-gradient(40% 35% at 85% 95%, color-mix(in srgb, var(--c-water) 18%, transparent), transparent 70%);
-  filter: blur(40px);
-}
-[data-mode="dark"][data-style="clean"] .backdrop { opacity: .9; }
+/* plain system-like background, no colored backdrop */
+[data-style="clean"] .backdrop { display: none; }
 
-/* one mixin for every glass surface */
+/* content layer: solid surfaces, no glass */
 [data-style="clean"] .card,
 [data-style="clean"] .tile,
 [data-style="clean"] .stat,
@@ -999,20 +988,46 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 [data-style="clean"] .style-opt,
 [data-style="clean"] .plan,
 [data-style="clean"] .status-pill,
-[data-style="clean"] .search-box,
-[data-style="clean"] .segmented,
 [data-style="clean"] .note-list,
-[data-style="clean"] .editor-text,
+[data-style="clean"] .editor-text {
+  background: var(--card);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  border: none;
+}
 [data-style="clean"] .info-card,
-[data-style="clean"] .banner,
-[data-style="clean"] .icon-btn.round,
+[data-style="clean"] .banner { box-shadow: none; border: none; }
+
+/* control layer: glass that floats above the content.
+   Bright thin rim (lens edge) via a gradient border, strong blur. */
 [data-style="clean"] .tabbar,
+[data-style="clean"] .icon-btn.round,
 [data-style="clean"] .sheet,
 [data-style="clean"] .toast {
-  background: var(--glass);
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--glass), var(--glass)) padding-box,
+    linear-gradient(160deg, var(--glass-edge), rgba(255, 255, 255, .12) 40%, rgba(255, 255, 255, .05) 60%, var(--glass-edge)) border-box;
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-shadow);
+  box-shadow: 0 8px 30px -8px rgba(0, 0, 0, .18), 0 1px 3px rgba(0, 0, 0, .06);
+}
+[data-mode="dark"][data-style="clean"] .tabbar,
+[data-mode="dark"][data-style="clean"] .icon-btn.round,
+[data-mode="dark"][data-style="clean"] .sheet,
+[data-mode="dark"][data-style="clean"] .toast {
+  box-shadow: 0 8px 30px -8px rgba(0, 0, 0, .7);
+}
+
+/* system-like gray fills for search, chips and the segmented control */
+[data-style="clean"] .search-box,
+[data-style="clean"] .search-box.big,
+[data-style="clean"] .segmented {
+  background: color-mix(in srgb, var(--muted) 16%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
   border: none;
 }
 
@@ -1047,7 +1062,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 [data-style="clean"] .perk-ico,
 [data-style="clean"] .info-ico,
 [data-style="clean"] .row-ico { border-radius: 12px; }
-[data-style="clean"] .habit-emoji { background: var(--glass-strong); box-shadow: inset 0 0 0 .5px var(--line); }
+[data-style="clean"] .habit-emoji { background: color-mix(in srgb, var(--muted) 14%, transparent); box-shadow: none; }
 
 /* hero: glass card with colored rings */
 [data-style="clean"] .hero { color: var(--text); border-radius: 28px; }
@@ -1069,11 +1084,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 [data-style="clean"] .btn { font-weight: 600; font-size: 17px; min-height: 50px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35); }
 [data-style="clean"] .btn.big { min-height: 54px; border-radius: 999px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 10px 24px -12px var(--accent); }
 [data-style="clean"] .btn:active { transform: scale(.97); filter: none; }
-[data-style="clean"] .btn.ghost {
-  background: var(--glass); color: var(--accent);
-  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-shadow);
-}
+[data-style="clean"] .btn.ghost { background: color-mix(in srgb, var(--muted) 16%, transparent); color: var(--accent); box-shadow: none; }
 [data-style="clean"] .btn.ghost.danger { color: var(--danger); }
 [data-style="clean"] .text-btn { font-weight: 500; font-size: 17px; }
 [data-style="clean"] .pill-btn { font-weight: 600; font-size: 15px; }
@@ -1108,9 +1119,8 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 [data-mode="dark"][data-style="clean"] .chip.tag {
   font-weight: 500; font-size: 15px; padding: 7px 14px;
   color: var(--text);
-  background: var(--glass);
-  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-shadow);
+  background: color-mix(in srgb, var(--muted) 16%, transparent);
+  box-shadow: none;
 }
 [data-style="clean"] .card .chip { background: var(--soft); box-shadow: none; }
 [data-style="clean"] .chip.on,
@@ -1123,9 +1133,10 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 [data-style="clean"] .segmented { padding: 4px; border-radius: 999px; }
 [data-style="clean"] .segmented button { padding: 8px; border-radius: 999px; font-size: 15px; color: var(--text); font-weight: 500; }
 [data-style="clean"] .segmented button.on {
-  background: var(--glass-strong); color: var(--text); font-weight: 600;
-  box-shadow: inset 0 1px 0 var(--glass-edge), 0 2px 8px rgba(0, 0, 0, .10);
+  background: var(--card); color: var(--text); font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .10), 0 0 0 .5px rgba(0, 0, 0, .04);
 }
+[data-mode="dark"][data-style="clean"] .segmented button.on { background: #636366; }
 
 /* notes: one glass list with separators */
 [data-style="clean"] .note-list { gap: 0; border-radius: var(--r-card); overflow: hidden; }
@@ -1139,7 +1150,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 [data-style="clean"] .avatar.ring-gold { box-shadow: 0 0 0 2.5px var(--bg), 0 0 0 5px var(--gold); }
 [data-style="clean"] .style-opt { border: none; }
 [data-style="clean"] .style-opt.on,
-[data-style="clean"] .plan.on { box-shadow: var(--glass-shadow), inset 0 0 0 2px var(--accent); }
+[data-style="clean"] .plan.on { box-shadow: inset 0 0 0 2px var(--accent); }
 [data-style="clean"] .plan { border: none; border-radius: var(--r-card); }
 [data-style="clean"] .swatch-preview { border-radius: 20px; }
 [data-style="clean"] .swatch.on .swatch-preview { box-shadow: 0 0 0 2.5px var(--accent); transform: none; }
@@ -1151,7 +1162,9 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
   width: min(calc(100% - 32px), 520px);
   padding: 5px;
   border-radius: 999px;
-  background: var(--glass-strong);
+  background:
+    linear-gradient(var(--glass-strong), var(--glass-strong)) padding-box,
+    linear-gradient(160deg, var(--glass-edge), rgba(255, 255, 255, .12) 40%, rgba(255, 255, 255, .05) 60%, var(--glass-edge)) border-box;
 }
 [data-style="clean"] .tabbar button {
   padding: 7px 0 5px;
@@ -1175,7 +1188,9 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
   margin-bottom: calc(8px + env(safe-area-inset-bottom));
   padding-bottom: 18px;
   border-radius: 34px;
-  background: var(--glass-strong);
+  background:
+    linear-gradient(var(--glass-strong), var(--glass-strong)) padding-box,
+    linear-gradient(160deg, var(--glass-edge), rgba(255, 255, 255, .12) 40%, rgba(255, 255, 255, .05) 60%, var(--glass-edge)) border-box;
 }
 [data-style="clean"] .sheet h3 { font-size: 22px; font-weight: 700; }
 [data-style="clean"] .toast { border-radius: 999px; color: var(--text); bottom: calc(96px + env(safe-area-inset-bottom)); }
