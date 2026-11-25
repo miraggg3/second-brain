@@ -4,12 +4,12 @@
 import { data, isPremium, update } from "../store";
 import { ModeSwitch } from "./Appearance";
 import { finishedWorkouts, habitStreak } from "../domain";
-import { dayKey, daysAgo, formatDate, num, parseNum } from "../utils";
+import { dayKey, daysAgo, formatDate, num } from "../utils";
 import { lang, LANGS, setLanguage, t, type Lang } from "../i18n";
 import { signal } from "@preact/signals";
 import { createPortal } from "preact/compat";
 import { haptic } from "../telegram";
-import { ask, Avatar, Icon, Row, type IconName } from "../ui";
+import { Avatar, Icon, Row, type IconName } from "../ui";
 import { tgUser } from "../telegram";
 import { openOverlay } from "../nav";
 import { premiumStatusText } from "../premium";
@@ -65,15 +65,6 @@ export function Profile() {
   const list = achievements();
   const earned = list.filter((a) => a.done).length;
 
-  const setWaterGoal = async () => {
-    const v = await ask({
-      title: t("profile.waterGoal"),
-      fields: [{ name: "v", label: t("profile.perDay"), type: "number", step: "0.25", value: d.settings.waterGoal / 1000, suffix: t("unit.l") }],
-    });
-    const n = v ? parseNum(v.v) : null;
-    if (n && n > 0 && n <= 10) update("settings", (s) => ({ ...s, waterGoal: Math.round(n * 1000) }));
-  };
-
   return (
     <>
       <section class="profile-hero">
@@ -117,7 +108,6 @@ export function Profile() {
         <Row icon="transfer" color="linear-gradient(135deg,#22C6D6,#3B82F6)" title={t("profile.dataTransfer")}
           sub={d.settings.lastBackup ? t("profile.backupFrom", { date: formatDate(d.settings.lastBackup, { day: "numeric", month: "short" }) }) : t("profile.noBackups")}
           onClick={() => openOverlay({ name: "data" })} />
-        <Row icon="drop" color="var(--c-water)" title={t("profile.waterGoal")} sub={t("profile.waterPerDay", { v: num(d.settings.waterGoal / 1000, 2) })} onClick={setWaterGoal} />
         <Row icon="crown" color="var(--grad-gold)" title="Premium" sub={premiumStatusText()}
           onClick={() => openOverlay({ name: "premium" })} />
       </div>

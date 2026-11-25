@@ -17,6 +17,7 @@ import { Appearance } from "./screens/Appearance";
 import { closeHoldMenu, holdMenu, HoldMenuLayer, installHoldGestures } from "./gestures";
 import { t, type Key } from "./i18n";
 import { setThemeTranslator } from "./themes";
+import { initReminderSync } from "./reminders";
 
 setThemeTranslator(t);
 
@@ -63,6 +64,7 @@ export function App() {
     loadAll().then(() => {
       if (activeWorkout(data.value.workouts)) tab.value = "gym";
       refreshPremium();
+      initReminderSync();
     });
     // Telegram's back button follows overlays and the sheet
     return effect(() => {

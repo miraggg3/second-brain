@@ -8,6 +8,7 @@ import { canUse, hapticOk, inTelegram, tg } from "./telegram";
 import { toast } from "./ui";
 import { openOverlay } from "./nav";
 import { locale, t } from "./i18n";
+import { applyBotMarks } from "./reminders";
 
 export type Plan = "month" | "lifetime" | "tip";
 
@@ -17,6 +18,7 @@ export const FREE_HABITS = 3;
 export const prices = signal<Record<Plan, number>>({ month: 99, lifetime: 499, tip: 50 });
 
 interface MeResponse {
+  marks?: { habitId: string; day: string }[];
   until: number;
   lifetime: boolean;
   prices?: Record<Plan, number>;
@@ -29,6 +31,7 @@ export async function refreshPremium() {
     serverOnline.value = true;
     if (me.prices) prices.value = me.prices;
     set("premium", { until: me.until || 0, lifetime: !!me.lifetime });
+    applyBotMarks(me.marks);
   } catch (e) {
     console.warn("Server not reachable:", (e as Error).message);
   }

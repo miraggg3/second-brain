@@ -18,9 +18,11 @@
 // picture of a card the user chose to share.
 
 import { LANGS, langOf, texts, type Lang } from "./texts";
+import { markFromApp, onReminderCallback, sendDueReminders, syncReminders, takeMarks } from "./reminders";
 
 export interface Env {
   DB: KVNamespace;
+  SQL: D1Database;
   BOT_TOKEN: string;
   WEBHOOK_SECRET: string;
   WEBAPP_URL: string;
@@ -189,7 +191,18 @@ async function handleApi(req: Request, env: Env, path: string, origin: string): 
   if (path === "/api/me") {
     const u = await getUser(env, user.id);
     const prices = Object.fromEntries(Object.entries(PLANS).map(([k, p]) => [k, p.amount]));
-    return json(200, { until: u.until, lifetime: u.lifetime, prices });
+    // habits marked "Done" in a bot reminder, for the app to apply
+    const marks = await takeMarks(env, user.id).catch(() => []);
+    return json(200, { until: u.until, lifetime: u.lifetime, prices, marks });
+  }
+
+  if (path === "/api/reminders") {
+    const res = await syncReminders(env, user.id, body);
+    return res ? json(200, res) : json(400, { error: "bad reminders" });
+  }
+
+  if (path === "/api/reminders/done") {
+    return (await markFromApp(env, user.id, body)) ? json(200, { ok: true }) : json(400, { error: "bad mark" });
   }
 
   if (path === "/api/invoice") {
@@ -360,10 +373,12 @@ interface SuccessfulPayment {
 interface Message { chat: { id: number }; from?: TgUser; text?: string; successful_payment?: SuccessfulPayment }
 interface Update {
   message?: Message;
+  callback_query?: Parameters<typeof onReminderCallback>[2];
   pre_checkout_query?: { id: string; from: TgUser; currency: string; total_amount: number; invoice_payload: string };
 }
 
 async function onUpdate(env: Env, u: Update) {
+  if (u.callback_query) return onReminderCallback(env, (m, b) => tg(env, m, b), u.callback_query);
   const q = u.pre_checkout_query;
   if (q) {
     const [planId, uid] = q.invoice_payload.split(":");
@@ -443,7 +458,7 @@ async function setup(env: Env, origin: string): Promise<Response> {
   await tg(env, "setWebhook", {
     url: `${origin}/bot`,
     secret_token: env.WEBHOOK_SECRET,
-    allowed_updates: ["message", "pre_checkout_query"],
+    allowed_updates: ["message", "pre_checkout_query", "callback_query"],
   });
   // English is the default for languages we don't have
   for (const lang of [undefined, ...LANGS]) {
@@ -496,5 +511,10 @@ export default {
       console.error(e);
       return json(500, { error: "server error" });
     }
+  },
+
+  // cron (wrangler.jsonc → triggers): every 5 minutes, send due habit reminders
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(sendDueReminders(env, (m, b) => tg(env, m, b)));
   },
 } satisfies ExportedHandler<Env>;

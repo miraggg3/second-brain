@@ -95,7 +95,10 @@ const cleanHabit = (x: Obj): Habit | null => {
   if (!id || !name) return null;
   const done: Record<string, true> = {};
   if (isObj(x.done)) for (const k of Object.keys(x.done)) if (DAY_RE.test(k) && x.done[k]) done[k] = true;
-  return { id, name, emoji: str(x.emoji, 8) ?? "", created: fin(x.created) ?? Date.now(), done };
+  const habit: Habit = { id, name, emoji: str(x.emoji, 8) ?? "", created: fin(x.created) ?? Date.now(), done };
+  const remind = str(x.remind, 5);
+  if (remind && /^([01]\d|2[0-3]):[0-5]\d$/.test(remind)) habit.remind = remind;
+  return habit;
 };
 
 const cleanTracker = (x: Obj): Tracker | null => {

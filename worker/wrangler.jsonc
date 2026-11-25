@@ -10,6 +10,12 @@
     // `npx wrangler kv namespace create DB` prints the id to paste here
     { "binding": "DB", "id": "8a7a7c6ecbe6485887d5471c26eb8e0c" }
   ],
+  // habit reminders (only habits the user turned a reminder on for)
+  "d1_databases": [
+    { "binding": "SQL", "database_name": "second-brain", "database_id": "62e3c758-9040-4fc9-90ce-5ac8f32841cd", "migrations_dir": "migrations" }
+  ],
+  // every 5 minutes: send the reminders that are due
+  "triggers": { "crons": ["*/5 * * * *"] },
   "vars": {
     "WEBAPP_URL": "https://miraggg3.github.io/second-brain/",
     // your Telegram user id: enables /refund <user_id> <charge_id>

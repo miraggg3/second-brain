@@ -38,6 +38,7 @@ export interface Habit {
   emoji: string;
   created: number;
   done: Record<string, true>; // "2026-11-24" -> true
+  remind?: string; // "HH:MM": the bot reminds at this local time
 }
 
 export type MetricKind = "water" | "sleep" | "mood" | "weight";
@@ -67,6 +68,7 @@ export interface Settings {
   widgets?: string[];
   // interface language; none = taken from Telegram on first launch
   lang?: "ru" | "en" | "uk" | "ar";
+  tipsSeen?: boolean; // the "how it works" card was closed
 }
 
 export interface Premium {
