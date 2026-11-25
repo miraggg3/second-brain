@@ -20,7 +20,7 @@ export const PALETTES: Record<Exclude<ThemeId, "auto" | "telegram">, Palette> = 
   // calm neutral palettes for the default "clean" style: one accent, no gradient
   light: {
     name: "Светлая", dark: false, premium: false,
-    bg: "#EEF0F6", card: "#FFFFFF", raised: "#EDEDF0", text: "#000000", muted: "#7C7C82",
+    bg: "#F2F2F7", card: "#FFFFFF", raised: "#EDEDF0", text: "#000000", muted: "#7C7C82",
     accent: "#007AFF", accent2: "#007AFF", onAccent: "#FFFFFF",
   },
   dark: {
@@ -81,7 +81,7 @@ export function themeIsPremium(id: ThemeId): boolean {
 }
 
 export const STYLES: { id: CardStyle; name: string; note: string; premium: boolean }[] = [
-  { id: "clean", name: "Прозрачный", note: "стеклянные панели и кнопки поверх мягкого фона", premium: false },
+  { id: "clean", name: "Прозрачный", note: "плотный контент, стеклянные панели и кнопки", premium: false },
   { id: "soft", name: "Мягкий", note: "заливка и лёгкая тень", premium: false },
   { id: "outline", name: "Контур", note: "тонкие линии, без теней", premium: false },
   { id: "glass", name: "Стекло", note: "полупрозрачные карточки на цветном фоне", premium: true },
