@@ -65,6 +65,8 @@ export interface Settings {
   // tiles in "Тело" on the main screen, in order: "water" | "sleep" | "weight" |
   // "mood" | "t:<tracker id>"; none = all of them
   widgets?: string[];
+  // interface language; none = taken from Telegram on first launch
+  lang?: "ru" | "en" | "uk" | "ar";
 }
 
 export interface Premium {

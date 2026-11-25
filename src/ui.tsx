@@ -6,6 +6,7 @@ import { useEffect, useRef } from "preact/hooks";
 import { hapticTick } from "./telegram";
 import { useHold } from "./gestures";
 import { shareImageItem } from "./share";
+import { locale, t } from "./i18n";
 
 // ---------- toast ----------
 
@@ -46,7 +47,7 @@ export const sheet = signal<SheetState | null>(null);
 // Resolves to { name: value } or null when cancelled.
 export function ask(opts: { title: string; fields: Field[]; ok?: string }) {
   return new Promise<Record<string, string> | null>((resolve) => {
-    sheet.value = { ok: "Сохранить", ...opts, resolve };
+    sheet.value = { ok: t("common.save"), ...opts, resolve };
   });
 }
 
@@ -93,7 +94,7 @@ export function Sheet() {
           </label>
         ))}
         <div class="sheet-actions">
-          <button type="button" class="btn ghost" onClick={() => closeSheet()}>Отмена</button>
+          <button type="button" class="btn ghost" onClick={() => closeSheet()}>{t("common.cancel")}</button>
           <button type="submit" class="btn">{s.ok}</button>
         </div>
       </form>
@@ -137,6 +138,8 @@ const PATHS = {
   heart: "M12 20s-7.5-4.6-7.5-10A4.5 4.5 0 0 1 12 7.1 4.5 4.5 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z",
   shield: "M12 3.5l7 2.5v5.5c0 4.6-3 8-7 9.5-4-1.5-7-4.9-7-9.5V6z",
   search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4",
+  gear: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 13.5l1.6 1.2-2 3.4-1.9-.7a7 7 0 0 1-1.9 1.1L15 20.5h-4l-.3-2a7 7 0 0 1-1.9-1.1l-1.9.7-2-3.4 1.6-1.2a7 7 0 0 1 0-2.2L4.9 9.1l2-3.4 1.9.7a7 7 0 0 1 1.9-1.1l.3-2h4l.3 2a7 7 0 0 1 1.9 1.1l1.9-.7 2 3.4-1.6 1.2a7 7 0 0 1 0 2.2z",
+  globe: "M12 20.5a8.5 8.5 0 1 0 0-17 8.5 8.5 0 0 0 0 17zM3.5 12h17M12 3.5c2.3 2.3 3.4 5.2 3.4 8.5s-1.1 6.2-3.4 8.5M12 3.5C9.7 5.8 8.6 8.7 8.6 12s1.1 6.2 3.4 8.5",
   folder: "M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z",
   grid: "M4.5 4.5h6v6h-6zM13.5 4.5h6v6h-6zM4.5 13.5h6v6h-6zM13.5 13.5h6v6h-6z",
   eyeOff: "M3 3l18 18M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 8.5 4.5 9.5 6-.5.8-1.6 2.3-3.2 3.6M6.4 7.6C4.5 8.9 3.1 10.8 2.5 12c1 1.5 4.5 6 9.5 6 1.6 0 3-.4 4.3-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2",
@@ -146,7 +149,7 @@ export type IconName = keyof typeof PATHS;
 
 export function Icon({ name, size = 22, stroke = 2 }: { name: IconName; size?: number; stroke?: number }) {
   return (
-    <svg class="ico" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" stroke-width={stroke}>
+    <svg class={`ico ico-${name}`} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" stroke-width={stroke}>
       <path d={PATHS[name]} />
     </svg>
   );
@@ -222,24 +225,24 @@ export function Ring({ value, color, size = 64, stroke = 7, children }:
 // − value + control. Tapping the number lets you type it.
 export function Stepper({ value, step, min = 0, unit, onChange, digits = 1 }:
   { value: number; step: number; min?: number; unit: string; onChange: (v: number) => void; digits?: number }) {
-  const fmt = (v: number) => Number(v.toFixed(digits)).toLocaleString("ru-RU");
+  const fmt = (v: number) => Number(v.toFixed(digits)).toLocaleString(locale.value);
   const change = (d: number) => {
     hapticTick();
     onChange(Math.max(min, Number((value + d).toFixed(2))));
   };
   const type = async () => {
-    const v = await ask({ title: unit === "кг" ? "Вес" : "Повторения", fields: [{ name: "v", label: unit, type: "number", step: "any", value }] });
+    const v = await ask({ title: unit === t("unit.kg") ? t("app.weight") : t("app.reps"), fields: [{ name: "v", label: unit, type: "number", step: "any", value }] });
     const n = v ? parseFloat(v.v.replace(",", ".")) : NaN;
     if (Number.isFinite(n) && n >= min) onChange(n);
   };
   return (
     <div class="stepper">
-      <button type="button" aria-label="Меньше" onClick={() => change(-step)}><Icon name="minus" size={18} /></button>
+      <button type="button" aria-label={t("app.less")} onClick={() => change(-step)}><Icon name="minus" size={18} /></button>
       <button type="button" class="stepper-val" onClick={type}>
         <b>{fmt(value)}</b>
         <small>{unit}</small>
       </button>
-      <button type="button" aria-label="Больше" onClick={() => change(step)}><Icon name="plus" size={18} /></button>
+      <button type="button" aria-label={t("app.more")} onClick={() => change(step)}><Icon name="plus" size={18} /></button>
     </div>
   );
 }

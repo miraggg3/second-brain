@@ -13,7 +13,8 @@ import type { DayValues } from "./types";
 import { MOODS } from "./screens/Today";
 import { tagsOf, titleOf } from "./screens/Notes";
 import { duration, finishedWorkouts, habitStreak, setCount, volumeOf, weekStreak, workoutsSince } from "./domain";
-import { dayKey, daysAgo, num, plural, startOfWeek } from "./utils";
+import { dayKey, daysAgo, num, startOfWeek } from "./utils";
+import { locale, t, type Key } from "./i18n";
 
 export type ShareFormat = "square" | "story";
 
@@ -53,12 +54,12 @@ function goalStreak(map: DayValues, goal: number): number {
   return n;
 }
 
-const streakBadge = (n: number, what = "подряд") => (n > 1 ? `🔥 ${n} ${plural(n, "день", "дня", "дней")} ${what}` : undefined);
+const streakBadge = (n: number, what: Key = "share.streakRow") => (n > 1 ? t(what, { n }) : undefined);
 
 function cut(lines: string[], max: number): { lines: string[]; more?: string } {
   if (lines.length <= max) return { lines };
   const rest = lines.length - (max - 1);
-  return { lines: lines.slice(0, max - 1), more: `и ещё ${rest}` };
+  return { lines: lines.slice(0, max - 1), more: t("share.more", { n: rest }) };
 }
 
 export function specFor(key: string): ShareSpec | null {
@@ -72,14 +73,14 @@ export function specFor(key: string): ShareSpec | null {
     const sleep = d.metrics.sleep[today];
     const mood = d.metrics.mood[today];
     return {
-      emoji: "☀️", color: "var(--accent)", title: "Мой день",
+      emoji: "☀️", color: "var(--accent)", title: t("share.myDay"),
       value: d.habits.length ? `${done}/${d.habits.length}` : num(water / 1000, 2),
-      unit: d.habits.length ? plural(d.habits.length, "привычка", "привычки", "привычек") : "л воды",
+      unit: d.habits.length ? t("share.habitsUnit", { n: d.habits.length }) : t("share.waterUnit"),
       lines: [
-        `💧 Вода: ${num(water / 1000, 2)} из ${num((d.settings.waterGoal || 2000) / 1000, 1)} л`,
-        `🌙 Сон: ${sleep != null ? `${num(sleep)} ч` : "не внесён"}`,
-        ...(mood ? [`${MOODS[mood - 1]!.emoji} Настроение: ${MOODS[mood - 1]!.label.toLowerCase()}`] : []),
-        ...(d.habits.length ? [`✅ Привычки: ${done} из ${d.habits.length}`] : []),
+        t("share.lineWater", { v: num(water / 1000, 2), goal: num((d.settings.waterGoal || 2000) / 1000, 1) }),
+        sleep != null ? t("share.lineSleep", { v: num(sleep) }) : t("share.lineSleepNone"),
+        ...(mood ? [t("share.lineMood", { emoji: MOODS[mood - 1]!.emoji, mood: MOODS[mood - 1]!.label.toLowerCase() })] : []),
+        ...(d.habits.length ? [t("share.lineHabits", { done, total: d.habits.length })] : []),
       ],
     };
   }
@@ -89,11 +90,11 @@ export function specFor(key: string): ShareSpec | null {
     if (id === "water") {
       const w = d.metrics.water[today] ?? 0;
       return {
-        emoji: "💧", color: "var(--c-water)", title: "Вода",
-        value: num(w / 1000, 2), unit: "л",
-        sub: `из ${num(goal / 1000, 1)} л · ${Math.round((w / goal) * 100)}% нормы`,
-        series: days(14, d.metrics.water), seriesLabel: "14 дней", empty: "Первый день — дальше будет график",
-        badge: streakBadge(goalStreak(d.metrics.water, goal), "в норме"),
+        emoji: "💧", color: "var(--c-water)", title: t("share.water"),
+        value: num(w / 1000, 2), unit: t("unit.l"),
+        sub: t("share.waterSub", { goal: num(goal / 1000, 1), pct: Math.round((w / goal) * 100) }),
+        series: days(14, d.metrics.water), seriesLabel: t("days", { n: 14 }), empty: t("share.waterEmpty"),
+        badge: streakBadge(goalStreak(d.metrics.water, goal), "share.streakGoal"),
       };
     }
     if (id === "sleep") {
@@ -101,11 +102,11 @@ export function specFor(key: string): ShareSpec | null {
       const avg = week.length ? week.reduce((a, b) => a + b, 0) / week.length : null;
       const now = d.metrics.sleep[today];
       return {
-        emoji: "🌙", color: "var(--c-sleep)", title: "Сон",
-        value: now != null ? num(now) : avg != null ? num(avg) : "0", unit: "ч",
-        sub: avg != null ? `в среднем за неделю ${num(avg)} ч` : "сегодня",
-        series: days(14, d.metrics.sleep), seriesLabel: "14 дней", empty: "Внеси сон пару дней — появится график",
-        badge: streakBadge(goalStreak(d.metrics.sleep, 7), "сплю 7+ часов"),
+        emoji: "🌙", color: "var(--c-sleep)", title: t("share.sleep"),
+        value: now != null ? num(now) : avg != null ? num(avg) : "0", unit: t("unit.h"),
+        sub: avg != null ? t("share.sleepAvg", { v: num(avg) }) : t("common.today"),
+        series: days(14, d.metrics.sleep), seriesLabel: t("days", { n: 14 }), empty: t("share.sleepEmpty"),
+        badge: streakBadge(goalStreak(d.metrics.sleep, 7), "share.streakSleep"),
       };
     }
     if (id === "weight") {
@@ -113,10 +114,12 @@ export function specFor(key: string): ShareSpec | null {
       const known = series.filter((v): v is number => v != null);
       const change = known.length > 1 ? known[known.length - 1]! - known[0]! : null;
       return {
-        emoji: "⚖️", color: "var(--c-weight)", title: "Вес",
-        value: known.length ? num(known[known.length - 1]!) : "—", unit: "кг",
-        sub: change != null ? `${change > 0 ? "+" : change < 0 ? "−" : "±"}${num(Math.abs(change))} кг за месяц` : "за месяц",
-        series, chart: "line", seriesLabel: "30 дней", empty: "Взвесься ещё раз — появится линия",
+        emoji: "⚖️", color: "var(--c-weight)", title: t("share.weight"),
+        value: known.length ? num(known[known.length - 1]!) : "—", unit: t("unit.kg"),
+        sub: change != null
+          ? t("share.weightChange", { v: `${change > 0 ? "+" : change < 0 ? "−" : "±"}${num(Math.abs(change))}` })
+          : t("share.perMonth"),
+        series, chart: "line", seriesLabel: t("days", { n: 30 }), empty: t("share.weightEmpty"),
       };
     }
     if (id === "mood") {
@@ -126,10 +129,10 @@ export function specFor(key: string): ShareSpec | null {
       const known = series.filter((v): v is number => v != null);
       const avg = known.length ? known.reduce((a, b) => a + b, 0) / known.length : null;
       return {
-        emoji: mood?.emoji ?? "🙂", color: "var(--c-mood)", title: "Настроение",
+        emoji: mood?.emoji ?? "🙂", color: "var(--c-mood)", title: t("share.mood"),
         value: mood?.label ?? "—",
-        sub: avg != null ? `в среднем за 2 недели: ${MOODS[Math.round(avg) - 1]!.label.toLowerCase()}` : undefined,
-        series, chart: "line", seriesLabel: "14 дней", empty: "Отмечай настроение — появится линия",
+        sub: avg != null ? t("share.moodAvg", { mood: MOODS[Math.round(avg) - 1]!.label.toLowerCase() }) : undefined,
+        series, chart: "line", seriesLabel: t("days", { n: 14 }), empty: t("share.moodEmpty"),
       };
     }
   }
@@ -142,9 +145,9 @@ export function specFor(key: string): ShareSpec | null {
     const count = last14.filter(Boolean).length;
     return {
       emoji: h.emoji || "✨", color: "var(--accent)", title: h.name,
-      value: String(streak), unit: `${plural(streak, "день", "дня", "дней")} подряд`,
-      sub: count ? `выполнено ${count} из 14 дней` : "начинаю с сегодняшнего дня",
-      series: last14, seriesLabel: "14 дней", empty: "Новая привычка — серия впереди 💪",
+      value: String(streak), unit: t("share.daysInRow", { n: streak }),
+      sub: count ? t("share.habitDone", { n: count }) : t("share.habitStart"),
+      series: last14, seriesLabel: t("days", { n: 14 }), empty: t("share.habitEmpty"),
     };
   }
 
@@ -152,8 +155,8 @@ export function specFor(key: string): ShareSpec | null {
     const done = d.habits.filter((h) => h.done[today]).length;
     const top = [...d.habits].sort((a, b) => habitStreak(b) - habitStreak(a));
     return {
-      emoji: "✅", color: "var(--accent)", title: "Привычки",
-      value: `${done}/${d.habits.length}`, unit: "сегодня",
+      emoji: "✅", color: "var(--accent)", title: t("share.habits"),
+      value: `${done}/${d.habits.length}`, unit: t("common.today"),
       ...cut(top.map((h) => `${h.emoji || "✨"} ${h.name} · ${habitStreak(h)} 🔥`), 5),
     };
   }
@@ -166,8 +169,8 @@ export function specFor(key: string): ShareSpec | null {
     return {
       emoji: "📈", color: "var(--accent)", title: tr.name,
       value: num(tr.values[today] ?? 0), unit: tr.unit,
-      sub: total ? `за 14 дней ${num(total)} ${tr.unit}` : "сегодня",
-      series, seriesLabel: "14 дней", empty: "Только начинаю считать",
+      sub: total ? t("share.trackerSub", { v: num(total), unit: tr.unit }) : t("common.today"),
+      series, seriesLabel: t("days", { n: 14 }), empty: t("share.trackerEmpty"),
     };
   }
 
@@ -185,10 +188,10 @@ export function specFor(key: string): ShareSpec | null {
       return finishedWorkouts(ws).filter((w) => w.start >= from && w.start < to).length;
     });
     return {
-      emoji: "🏋️", color: "var(--c-gym)", title: "Зал",
-      value: String(streak), unit: `${plural(streak, "неделя", "недели", "недель")} подряд`,
-      sub: `${month} ${plural(month, "тренировка", "тренировки", "тренировок")} за месяц · ${week} на неделе`,
-      series: weeks, seriesLabel: "12 недель", empty: "Первая тренировка — впереди",
+      emoji: "🏋️", color: "var(--c-gym)", title: t("tab.gym"),
+      value: String(streak), unit: t("share.weeksInRow", { n: streak }),
+      sub: `${t("share.workoutsMonth", { n: month })} · ${t("share.onWeek", { n: week })}`,
+      series: weeks, seriesLabel: t("weeks", { n: 12 }), empty: t("share.gymEmpty"),
     };
   }
 
@@ -198,9 +201,9 @@ export function specFor(key: string): ShareSpec | null {
     const sets = setCount(w);
     return {
       emoji: "🏋️", color: "var(--c-gym)",
-      title: `Тренировка ${new Date(w.start).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}`,
-      value: num(volumeOf(w), 0), unit: "кг",
-      sub: `тоннаж · ${duration((w.end ?? w.start) - w.start)} · ${sets} ${plural(sets, "подход", "подхода", "подходов")}`,
+      title: t("share.workoutTitle", { date: new Date(w.start).toLocaleDateString(locale.value, { day: "numeric", month: "long" }) }),
+      value: num(volumeOf(w), 0), unit: t("unit.kg"),
+      sub: t("share.workoutSub", { n: sets, dur: duration((w.end ?? w.start) - w.start) }),
       ...cut(w.items.map((it) => `${it.name} · ${it.sets.map((s) => (s.w ? `${num(s.w)}×${s.r}` : String(s.r))).join("  ")}`), 6),
     };
   }
@@ -215,7 +218,7 @@ export function specFor(key: string): ShareSpec | null {
     return {
       emoji: "📝", color: "var(--accent)",
       // a one-line note: that line is the content, shown large
-      title: body ? title || "Заметка" : "Заметка",
+      title: body ? title || t("share.note") : t("share.note"),
       sub: folder ? `📁 ${folder.name}` : undefined,
       text: body || title, big: !body,
       tags: tagsOf(n.text).slice(0, 4),
@@ -228,9 +231,9 @@ export function specFor(key: string): ShareSpec | null {
     const notes = d.notes.filter((n) => n.folder === f.id);
     return {
       emoji: "📁", color: "var(--accent)", title: f.name,
-      value: String(notes.length), unit: plural(notes.length, "заметка", "заметки", "заметок"),
+      value: String(notes.length), unit: t("share.notesUnit", { n: notes.length }),
       ...cut(notes.map((n) => `📝 ${titleOf(n.text)}`), 6),
-      sub: notes.length ? undefined : "Пока пустая — скоро заполню",
+      sub: notes.length ? undefined : t("share.folderEmpty"),
     };
   }
 
@@ -301,7 +304,7 @@ function valueSize(spec: ShareSpec): string {
 function ShareArt({ spec, format }: { spec: ShareSpec; format: ShareFormat }) {
   const story = format === "story";
   const isNote = spec.text != null;
-  const date = new Date().toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+  const date = new Date().toLocaleDateString(locale.value, { day: "numeric", month: "long" });
   return (
     <div class={`share-art ${format} ${isNote ? "sa-note" : ""}`} style={{ "--c": spec.color }}>
       {story && <p class="sa-date">{date}</p>}
@@ -330,7 +333,7 @@ function ShareArt({ spec, format }: { spec: ShareSpec; format: ShareFormat }) {
         {spec.badge && <span class="sa-badge">{spec.badge}</span>}
       </div>
       <div class="sa-foot">
-        <b>🧠 Второй мозг</b>
+        <b>🧠 {t("share.app")}</b>
         {BOT && <span>t.me/{BOT}</span>}
       </div>
     </div>

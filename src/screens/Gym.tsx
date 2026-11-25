@@ -7,7 +7,8 @@ import {
   activeWorkout, clock, duration, exerciseNames, finishedWorkouts, previousSet, setCount, volumeOf,
   weekStreak, workoutsSince,
 } from "../domain";
-import { dayKey, newId, num, plural, startOfWeek } from "../utils";
+import { dayKey, newId, num, startOfWeek } from "../utils";
+import { locale, t } from "../i18n";
 import { Heatmap } from "../charts";
 import { Card, Empty, Icon, PageHead, Stepper, toast } from "../ui";
 import { confirmAsk, haptic, hapticOk } from "../telegram";
@@ -47,16 +48,16 @@ function ExerciseCard({ w, i }: { w: Workout; i: number }) {
     }));
 
   const removeExercise = async () => {
-    if (it.sets.length && !(await confirmAsk(`Убрать «${it.name}» со всеми подходами?`))) return;
+    if (it.sets.length && !(await confirmAsk(t("gym.removeExerciseConfirm", { name: it.name })))) return;
     editActive((x) => ({ ...x, items: x.items.filter((_, j) => j !== i) }));
   };
 
   return (
-    <Card title={it.name} action={<button class="icon-btn" aria-label="Убрать упражнение" onClick={removeExercise}><Icon name="close" size={18} /></button>}>
+    <Card title={it.name} action={<button class="icon-btn" aria-label={t("gym.removeExercise")} onClick={removeExercise}><Icon name="close" size={18} /></button>}>
       {it.sets.length > 0 && (
         <div class="sets">
           {it.sets.map((s, j) => (
-            <button key={j} class="set-chip" onClick={() => removeSet(j)} title="Нажми, чтобы удалить">
+            <button key={j} class="set-chip" onClick={() => removeSet(j)} title={t("gym.tapToDelete")}>
               <small>{j + 1}</small>
               <b>{num(s.w)}</b>×{s.r}
             </button>
@@ -64,10 +65,10 @@ function ExerciseCard({ w, i }: { w: Workout; i: number }) {
         </div>
       )}
       <div class="set-controls">
-        <Stepper value={kg} step={2.5} unit="кг" onChange={setKg} />
-        <Stepper value={reps} step={1} min={1} unit="повт" onChange={setReps} digits={0} />
+        <Stepper value={kg} step={2.5} unit={t("unit.kg")} onChange={setKg} />
+        <Stepper value={reps} step={1} min={1} unit={t("gym.repsUnit")} onChange={setReps} digits={0} />
       </div>
-      <button class="btn block" onClick={addSet}><Icon name="plus" size={18} /> Подход {it.sets.length + 1}</button>
+      <button class="btn block" onClick={addSet}><Icon name="plus" size={18} /> {t("gym.setN", { n: it.sets.length + 1 })}</button>
     </Card>
   );
 }
@@ -97,43 +98,43 @@ function ActiveWorkout({ w }: { w: Workout }) {
   const finish = async () => {
     const items = w.items.filter((it) => it.sets.length);
     if (!items.length) {
-      if (!(await confirmAsk("Ни одного подхода. Удалить тренировку?"))) return;
+      if (!(await confirmAsk(t("gym.noSetsConfirm")))) return;
       update("workouts", (ws) => ws.filter((x) => x.id !== w.id));
       return;
     }
     const end = Date.now();
     editActive((x) => ({ ...x, items, end }));
     hapticOk();
-    toast(`Отличная работа! ${duration(end - w.start)}, ${num(volumeOf({ ...w, items }), 0)} кг объёма`);
+    toast(t("gym.finishedToast", { time: duration(end - w.start), volume: num(volumeOf({ ...w, items }), 0) }));
   };
 
   const cancel = async () => {
-    if (!(await confirmAsk("Отменить тренировку? Подходы удалятся."))) return;
+    if (!(await confirmAsk(t("gym.cancelConfirm")))) return;
     update("workouts", (ws) => ws.filter((x) => x.id !== w.id));
   };
 
   return (
     <>
       <section class="workout-hero">
-        <p class="eyebrow light"><span class="live-dot" /> Тренировка идёт</p>
+        <p class="eyebrow light"><span class="live-dot" /> {t("gym.inProgress")}</p>
         <div class="workout-clock">{clock(Date.now() - w.start)}</div>
         <div class="workout-meta">
-          <span><b>{w.items.length}</b> упр.</span>
-          <span><b>{setCount(w)}</b> {plural(setCount(w), "подход", "подхода", "подходов")}</span>
-          <span><b>{num(volumeOf(w), 0)}</b> кг</span>
+          <span><b>{w.items.length}</b> {t("gym.exercisesWord", { n: w.items.length })}</span>
+          <span><b>{setCount(w)}</b> {t("gym.setsWord", { n: setCount(w) })}</span>
+          <span><b>{num(volumeOf(w), 0)}</b> {t("unit.kg")}</span>
         </div>
         <div class="workout-actions">
-          <button class="btn light" onClick={finish}><Icon name="check" size={18} /> Завершить</button>
-          <button class="btn glass-btn" onClick={cancel}>Отменить</button>
+          <button class="btn light" onClick={finish}><Icon name="check" size={18} /> {t("gym.finish")}</button>
+          <button class="btn glass-btn" onClick={cancel}>{t("gym.cancelWorkout")}</button>
         </div>
       </section>
 
       {w.items.map((it, i) => <ExerciseCard key={`${i}-${it.name}`} w={w} i={i} />)}
 
-      <Card title={w.items.length ? "Следующее упражнение" : "Первое упражнение"}>
+      <Card title={w.items.length ? t("gym.nextExercise") : t("gym.firstExercise")}>
         <div class="search-box">
           <Icon name="search" size={18} />
-          <input placeholder="Найти или ввести своё" value={name} autoComplete="off"
+          <input placeholder={t("gym.searchPlaceholder")} value={name} autoComplete="off"
             onInput={(e) => setName(e.currentTarget.value)}
             onKeyDown={(e) => e.key === "Enter" && addExercise(name)} />
         </div>
@@ -164,33 +165,33 @@ function Overview() {
   for (const w of all) perDay[dayKey(w.start)] = (perDay[dayKey(w.start)] ?? 0) + 1;
 
   const remove = async (id: string) => {
-    if (!(await confirmAsk("Удалить тренировку из истории?"))) return;
+    if (!(await confirmAsk(t("gym.deleteFromHistoryConfirm")))) return;
     set("workouts", ws.filter((x) => x.id !== id));
   };
 
   return (
     <>
-      <PageHead title="Зал" sub={`${all.length} ${plural(all.length, "тренировка", "тренировки", "тренировок")} в журнале`} />
+      <PageHead title={t("tab.gym")} sub={t("gym.inLog", { n: all.length })} />
 
       <button class="start-card" onClick={startWorkout}>
         <span class="start-play"><Icon name="play" size={26} /></span>
         <span class="grow">
-          <b>Начать тренировку</b>
-          <small>Подходы записываются в пару касаний</small>
+          <b>{t("gym.startWorkout")}</b>
+          <small>{t("gym.startHint")}</small>
         </span>
       </button>
 
       <StatRow week={week} month={month} streak={streak} />
 
-      <Card share="gym" title="Посещения" icon="today">
+      <Card share="gym" title={t("gym.visits")} icon="today">
         <Heatmap levelOf={(d) => Math.min(3, (perDay[d] ?? 0) * 2)} color="var(--c-gym)" />
-        <div class="heat-legend"><span>меньше</span><i class="l0" /><i class="l1" /><i class="l2" /><i class="l3" /><span>больше</span></div>
+        <div class="heat-legend"><span>{t("gym.less")}</span><i class="l0" /><i class="l1" /><i class="l2" /><i class="l3" /><span>{t("gym.more")}</span></div>
       </Card>
 
-      <h2 class="section-title">История</h2>
+      <h2 class="section-title">{t("gym.history")}</h2>
       {all.length ? all.slice(0, 40).map((w) => (
         <HistoryItem key={w.id} w={w} open={openId === w.id} onToggle={() => setOpenId(openId === w.id ? null : w.id)} onRemove={() => remove(w.id)} />
-      )) : <Card><Empty icon="gym">Здесь появятся твои тренировки. Нажми «Начать» в зале — и записывай подходы между ними.</Empty></Card>}
+      )) : <Card><Empty icon="gym">{t("gym.empty")}</Empty></Card>}
     </>
   );
 }
@@ -199,9 +200,9 @@ function StatRow({ week, month, streak }: { week: number; month: number; streak:
   const ref = useHold<HTMLDivElement>({ menu: () => [shareImageItem("gym")] });
   return (
     <div ref={ref} class="stat-row" data-share="gym">
-      <div class="stat"><b>{week}</b><small>на неделе</small></div>
-      <div class="stat"><b>{month}</b><small>за месяц</small></div>
-      <div class="stat"><b>{streak}<Icon name="flame" size={16} /></b><small>{plural(streak, "неделя", "недели", "недель")} подряд</small></div>
+      <div class="stat"><b>{week}</b><small>{t("gym.thisWeek")}</small></div>
+      <div class="stat"><b>{month}</b><small>{t("gym.thisMonth")}</small></div>
+      <div class="stat"><b>{streak}<Icon name="flame" size={16} /></b><small>{t("gym.weeksInRow", { n: streak })}</small></div>
     </div>
   );
 }
@@ -212,7 +213,7 @@ function HistoryItem({ w, open, onToggle, onRemove }: { w: Workout; open: boolea
   const ref = useHold<HTMLDivElement>({
     menu: () => [
       shareImageItem(`workout:${w.id}`),
-      { label: "Удалить тренировку", icon: "trash", danger: true, run: onRemove },
+      { label: t("gym.deleteWorkout"), icon: "trash", danger: true, run: onRemove },
     ],
   });
   return (
@@ -220,11 +221,11 @@ function HistoryItem({ w, open, onToggle, onRemove }: { w: Workout; open: boolea
       <button class="history-head" onClick={onToggle}>
         <span class="date-badge">
           <b>{d.getDate()}</b>
-          <small>{d.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "")}</small>
+          <small>{d.toLocaleDateString(locale.value, { month: "short" }).replace(".", "")}</small>
         </span>
         <span class="grow">
           <b>{w.items.map((i) => i.name).slice(0, 2).join(", ")}{w.items.length > 2 ? ` +${w.items.length - 2}` : ""}</b>
-          <small>{duration((w.end ?? w.start) - w.start)} · {setCount(w)} {plural(setCount(w), "подход", "подхода", "подходов")} · {num(volumeOf(w), 0)} кг</small>
+          <small>{duration((w.end ?? w.start) - w.start)} · {t("gym.sets", { n: setCount(w) })} · {num(volumeOf(w), 0)} {t("unit.kg")}</small>
         </span>
         <span class={`chev ${open ? "up" : ""}`}><Icon name="chevron" size={18} /></span>
       </button>
@@ -238,7 +239,7 @@ function HistoryItem({ w, open, onToggle, onRemove }: { w: Workout; open: boolea
               </div>
             </div>
           ))}
-          <p class="muted small">Зажми карточку, чтобы поделиться или удалить</p>
+          <p class="muted small">{t("gym.holdHint")}</p>
         </div>
       )}
     </div>

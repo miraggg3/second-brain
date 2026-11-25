@@ -458,7 +458,8 @@ export function HoldMenuLayer() {
   const previewBottom = previewTop + Math.min(m.rect.height, vh * 0.45);
   const below = vh - previewBottom - pad >= menuH + 10;
   const menuTop = below ? previewBottom + 10 : Math.max(pad, previewTop - menuH - 10);
-  const left = Math.max(pad, Math.min(m.rect.left, vw - width - pad));
+  const rtl = document.documentElement.dir === "rtl";
+  const left = Math.max(pad, Math.min(rtl ? m.rect.right - width : m.rect.left, vw - width - pad));
 
   const pick = (item: MenuItem) => {
     if (item.submenu) {

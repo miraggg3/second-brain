@@ -1,0 +1,30 @@
+import type { Entry } from "..";
+import type ru from "../ru/progress";
+
+export default {
+  "progress.title": "Progress",
+  "progress.sub": "How you're changing",
+  "progress.segBody": "Body",
+  "progress.segHabits": "Habits",
+  "progress.weight": "Body weight",
+  "progress.sleep14": "Sleep · 14 days",
+  "progress.water14": "Water · 14 days",
+  "progress.mood30": "Mood · 30 days",
+  "progress.tracker14": "{name} · 14 days",
+  "progress.habitsEmpty": "Add habits on the Today tab and your stats will show up here.",
+  "progress.allHabits": "All habits",
+  "progress.doneOf30": { one: "{n} of 30 days", other: "{n} of 30 days" },
+  "progress.streak": "streak {n}",
+  "progress.lockedTitle": "Records and strength gains",
+  "progress.lockedText": "Personal records, estimated one-rep max and charts for every exercise.",
+  "progress.lockedCta": "Unlock with Premium",
+  "progress.gymEmpty": "Finish your first workout and your records will show up here.",
+  "progress.statRecord": "best, kg",
+  "progress.stat1rm": "1RM, kg",
+  "progress.statWorkouts": { one: "workout", other: "workouts" },
+  "progress.oneRm": "Estimated max (1RM)",
+  "progress.volume": "Volume per workout",
+  "progress.chartNeed2": "Add at least 2 entries to see a chart",
+  "progress.chartEmpty": "No entries for this period yet",
+  "progress.avg": "on average",
+} satisfies Record<keyof typeof ru, Entry>;

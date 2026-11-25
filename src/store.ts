@@ -5,6 +5,8 @@ import { computed, signal } from "@preact/signals";
 import type { AppData, DataKey } from "./types";
 import { loadKey, removeKey, saveKey } from "./storage";
 import { toast } from "./ui";
+import { detectLang, setLanguage, t } from "./i18n";
+import { tgUser } from "./telegram";
 
 // Bump when the default look changes; loadAll() moves people who never picked a style.
 const DESIGN_VERSION = 2;
@@ -51,6 +53,8 @@ export async function loadAll() {
     settingsChanged = true;
   }
   if (settingsChanged) saveKey("settings", next.settings).catch(() => undefined);
+  // language before the first paint, so the UI never flashes in another one
+  await setLanguage(next.settings.lang ?? detectLang(tgUser?.language_code)).catch((e) => console.error(e));
   data.value = next;
   loaded.value = true;
 }
@@ -59,7 +63,7 @@ export function set<K extends DataKey>(key: K, value: AppData[K]) {
   data.value = { ...data.value, [key]: value };
   saveKey(key, value).catch((e) => {
     console.error(e);
-    toast("Не удалось сохранить: место на устройстве закончилось?");
+    toast(t("common.notSaved"));
   });
 }
 

@@ -17,6 +17,7 @@ import { domToJpeg, domToPng } from "modern-screenshot";
 import { api, blobToBase64, serverOnline } from "./api";
 import { canUse, haptic, hapticTick, inTelegram, tg } from "./telegram";
 import { toast } from "./ui";
+import { t } from "./i18n";
 import { mountShareArt, specFor, type ShareFormat } from "./shareCards";
 
 const BOT: string = (import.meta.env.VITE_BOT_USERNAME ?? "").replace(/^@/, "");
@@ -62,7 +63,7 @@ async function squareViaBot(image: Blob): Promise<boolean> {
 async function storyViaTelegram(image: Blob): Promise<boolean> {
   try {
     const { url } = await api<{ url: string }>("/api/story-image", { image: await blobToBase64(image) });
-    tg!.shareToStory!(url, appLink ? { widget_link: { url: appLink, name: "Второй мозг" } } : undefined);
+    tg!.shareToStory!(url, appLink ? { widget_link: { url: appLink, name: t("notes.appName") } } : undefined);
     return true;
   } catch (e) {
     console.warn("story via telegram failed:", (e as Error).message);
@@ -97,10 +98,10 @@ export async function shareTracker(key: string, format: ShareFormat) {
     }
     const png = await picture(key, format, "png");
     if (!png) return;
-    if (!(await viaShareSheet(png))) toast("Этот телефон не умеет делиться картинками");
+    if (!(await viaShareSheet(png))) toast(t("notes.cantShareImages"));
   } catch (e) {
     console.warn("share failed:", (e as Error).message);
-    toast("Не получилось поделиться");
+    toast(t("notes.shareFailed"));
   } finally {
     busy = false;
   }
@@ -113,11 +114,11 @@ export function askAndShare(key: string) {
   if (canUse("6.2") && tg!.showPopup) {
     tg!.showPopup!(
       {
-        title: "Поделиться",
-        message: "Картинка для чата или для сторис?",
+        title: t("common.share"),
+        message: t("notes.shareAsk"),
         buttons: [
-          { id: "square", type: "default", text: "Квадрат" },
-          { id: "story", type: "default", text: "Для сторис" },
+          { id: "square", type: "default", text: t("notes.square") },
+          { id: "story", type: "default", text: t("notes.story") },
           { type: "cancel" },
         ],
       },
@@ -128,12 +129,12 @@ export function askAndShare(key: string) {
     return;
   }
   // outside Telegram (dev): confirm() as a simple chooser
-  shareTracker(key, window.confirm("Для сторис? (Отмена = квадрат)") ? "story" : "square");
+  shareTracker(key, window.confirm(t("notes.storyConfirm")) ? "story" : "square");
 }
 
 // Menu item that shares a tracker or card as a picture.
 export const shareImageItem = (key: string) => ({
-  label: "Поделиться картинкой",
+  label: t("common.sharePicture"),
   icon: "share" as const,
   run: () => askAndShare(key),
 });
@@ -155,7 +156,7 @@ export async function copyText(text: string) {
     ta.remove();
   }
   hapticTick();
-  toast("Скопировано");
+  toast(t("common.copied"));
 }
 
 // Sends text to any chat. Best: Telegram's own dialog with an "Открыть" button

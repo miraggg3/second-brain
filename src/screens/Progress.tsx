@@ -11,6 +11,7 @@ import { dayKey, lastDays, num, shortDay } from "../utils";
 import { BarChart, Heatmap, LineChart, type Point } from "../charts";
 import { Card, Empty, Icon, PageHead, Ring, Segmented } from "../ui";
 import { openOverlay } from "../nav";
+import { t } from "../i18n";
 
 type Seg = "body" | "habits" | "gym";
 const seg = signal<Seg>("body");
@@ -26,16 +27,16 @@ function Body() {
   const moods = lastDays(30).filter((x) => m.mood[dayKey(x)]).map((x) => ({ label: shortDay(x), value: m.mood[dayKey(x)]! }));
   return (
     <>
-      <Card share="metric:weight" title="Вес тела" icon="scale"><LineChart points={weights} unit=" кг" color="var(--c-weight)" /></Card>
-      <Card share="metric:sleep" title="Сон · 14 дней" icon="moon"><BarChart points={series(m.sleep, days14)} unit=" ч" goal={8} color="var(--c-sleep)" /></Card>
-      <Card share="metric:water" title="Вода · 14 дней" icon="drop">
-        <BarChart points={series(m.water, days14).map((p) => ({ ...p, value: p.value / 1000 }))} unit=" л"
+      <Card share="metric:weight" title={t("progress.weight")} icon="scale"><LineChart points={weights} unit={` ${t("unit.kg")}`} color="var(--c-weight)" /></Card>
+      <Card share="metric:sleep" title={t("progress.sleep14")} icon="moon"><BarChart points={series(m.sleep, days14)} unit={` ${t("unit.h")}`} goal={8} color="var(--c-sleep)" /></Card>
+      <Card share="metric:water" title={t("progress.water14")} icon="drop">
+        <BarChart points={series(m.water, days14).map((p) => ({ ...p, value: p.value / 1000 }))} unit={` ${t("unit.l")}`}
           goal={d.settings.waterGoal / 1000} color="var(--c-water)" />
       </Card>
-      <Card share="metric:mood" title="Настроение · 30 дней" icon="smile"><LineChart points={moods} digits={1} color="var(--c-mood)" /></Card>
-      {isPremium.value && d.trackers.map((t) => (
-        <Card key={t.id} share={`tracker:${t.id}`} title={`${t.name} · 14 дней`} icon="sparkle">
-          <BarChart points={series(t.values, days14)} unit={` ${t.unit}`} />
+      <Card share="metric:mood" title={t("progress.mood30")} icon="smile"><LineChart points={moods} digits={1} color="var(--c-mood)" /></Card>
+      {isPremium.value && d.trackers.map((tr) => (
+        <Card key={tr.id} share={`tracker:${tr.id}`} title={t("progress.tracker14", { name: tr.name })} icon="sparkle">
+          <BarChart points={series(tr.values, days14)} unit={` ${tr.unit}`} />
         </Card>
       ))}
     </>
@@ -44,7 +45,7 @@ function Body() {
 
 function Habits() {
   const d = data.value;
-  if (!d.habits.length) return <Card><Empty icon="flame">Добавь привычки на вкладке «Сегодня» — здесь появится статистика.</Empty></Card>;
+  if (!d.habits.length) return <Card><Empty icon="flame">{t("progress.habitsEmpty")}</Empty></Card>;
   const days30 = lastDays(30);
   const level = (day: string) => {
     const share = d.habits.filter((h) => h.done[day]).length / d.habits.length;
@@ -52,7 +53,7 @@ function Habits() {
   };
   return (
     <>
-      <Card share="habits" title="Все привычки" icon="today">
+      <Card share="habits" title={t("progress.allHabits")} icon="today">
         <Heatmap levelOf={level} />
       </Card>
       {d.habits.map((h) => <HabitStat key={h.id} h={h} days30={days30} />)}
@@ -71,7 +72,7 @@ function HabitStat({ h, days30 }: { h: Habit; days30: Date[] }) {
             </Ring>
             <div class="grow">
               <b>{h.emoji} {h.name}</b>
-              <small class="muted">{done} из 30 дней · серия {streak} <Icon name="flame" size={12} /></small>
+              <small class="muted">{t("progress.doneOf30", { n: done })} · {t("progress.streak", { n: streak })} <Icon name="flame" size={12} /></small>
               <div class="mini-days">
                 {days30.slice(-14).map((x) => <i key={dayKey(x)} class={h.done[dayKey(x)] ? "on" : ""} />)}
               </div>
@@ -89,13 +90,13 @@ function Gym() {
     return (
       <button class="card locked" onClick={() => openOverlay({ name: "premium" })}>
         <span class="locked-ico"><Icon name="trophy" size={30} /></span>
-        <b>Рекорды и рост силы</b>
-        <p class="muted">Личные рекорды, расчётный максимум на 1 повтор и графики по каждому упражнению.</p>
-        <span class="pill-btn">Открыть с Premium</span>
+        <b>{t("progress.lockedTitle")}</b>
+        <p class="muted">{t("progress.lockedText")}</p>
+        <span class="pill-btn">{t("progress.lockedCta")}</span>
       </button>
     );
   }
-  if (!names.length) return <Card><Empty icon="trophy">Заверши первую тренировку — и здесь появятся рекорды.</Empty></Card>;
+  if (!names.length) return <Card><Empty icon="trophy">{t("progress.gymEmpty")}</Empty></Card>;
 
   const name = picked && names.includes(picked) ? picked : names[0]!;
   const h = exerciseHistory(ws, name);
@@ -105,15 +106,15 @@ function Gym() {
         {names.map((n) => <button key={n} class={`chip ${n === name ? "on" : ""}`} onClick={() => setPicked(n)}>{n}</button>)}
       </div>
       <div class="stat-row">
-        <div class="stat"><b>{num(Math.max(...h.map((x) => x.maxW)))}</b><small>рекорд, кг</small></div>
-        <div class="stat"><b>{num(Math.max(...h.map((x) => x.best1rm)))}</b><small>1ПМ, кг</small></div>
-        <div class="stat"><b>{h.length}</b><small>тренировок</small></div>
+        <div class="stat"><b>{num(Math.max(...h.map((x) => x.maxW)))}</b><small>{t("progress.statRecord")}</small></div>
+        <div class="stat"><b>{num(Math.max(...h.map((x) => x.best1rm)))}</b><small>{t("progress.stat1rm")}</small></div>
+        <div class="stat"><b>{h.length}</b><small>{t("progress.statWorkouts", { n: h.length })}</small></div>
       </div>
-      <Card share="gym" title="Расчётный максимум (1ПМ)" icon="trophy">
-        <LineChart points={h.map((x) => ({ label: shortDay(x.date), value: x.best1rm }))} unit=" кг" color="var(--c-gym)" />
+      <Card share="gym" title={t("progress.oneRm")} icon="trophy">
+        <LineChart points={h.map((x) => ({ label: shortDay(x.date), value: x.best1rm }))} unit={` ${t("unit.kg")}`} color="var(--c-gym)" />
       </Card>
-      <Card share="gym" title="Объём за тренировку" icon="gym">
-        <LineChart points={h.map((x) => ({ label: shortDay(x.date), value: x.volume }))} unit=" кг" digits={0} color="var(--c-gym)" />
+      <Card share="gym" title={t("progress.volume")} icon="gym">
+        <LineChart points={h.map((x) => ({ label: shortDay(x.date), value: x.volume }))} unit={` ${t("unit.kg")}`} digits={0} color="var(--c-gym)" />
       </Card>
     </>
   );
@@ -122,9 +123,9 @@ function Gym() {
 export function Progress() {
   return (
     <>
-      <PageHead title="Прогресс" sub="Как меняешься ты" />
+      <PageHead title={t("progress.title")} sub={t("progress.sub")} />
       <Segmented value={seg.value} onChange={(v) => (seg.value = v)}
-        options={[{ id: "body", label: "Тело" }, { id: "habits", label: "Привычки" }, { id: "gym", label: "Зал" }]} />
+        options={[{ id: "body", label: t("progress.segBody") }, { id: "habits", label: t("progress.segHabits") }, { id: "gym", label: t("tab.gym") }]} />
       {seg.value === "body" && <Body />}
       {seg.value === "habits" && <Habits />}
       {seg.value === "gym" && <Gym />}

@@ -1,4 +1,6 @@
-// Dates, numbers and words.
+// Dates and numbers, formatted for the current language (i18n locale).
+
+import { locale, t } from "./i18n";
 
 export const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
@@ -38,19 +40,20 @@ export function formatDate(
   ms: number | Date,
   opts: Intl.DateTimeFormatOptions = { dateStyle: "short", timeStyle: "short" },
 ): string {
-  return new Date(ms).toLocaleString("ru-RU", opts);
+  return new Date(ms).toLocaleString(locale.value, opts);
 }
 
-// "24.11"
+// "24.11" / "11/24" / "24/11"
 export function shortDay(d: Date | number | string): string {
   const date = typeof d === "string" ? fromDayKey(d) : new Date(d);
-  return `${pad2(date.getDate())}.${pad2(date.getMonth() + 1)}`;
+  return date.toLocaleDateString(locale.value, { day: "2-digit", month: "2-digit" });
 }
 
 export function num(v: number, digits = 1): string {
-  return Number(v.toFixed(digits)).toLocaleString("ru-RU");
+  return Number(v.toFixed(digits)).toLocaleString(locale.value);
 }
 
+// Russian-only word forms; new code uses t() plural entries instead.
 // plural(5, "тренировка", "тренировки", "тренировок") -> "тренировок"
 export function plural(n: number, one: string, few: string, many: string): string {
   const a = Math.abs(n) % 100;
@@ -61,13 +64,18 @@ export function plural(n: number, one: string, few: string, many: string): strin
   return many;
 }
 
+// accepts "7,5", "7.5" and Arabic-Indic / Persian digits with "٫"
 export function parseNum(s: string): number | null {
-  const v = parseFloat(String(s).replace(",", "."));
+  const western = String(s)
+    .replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660))
+    .replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x6f0))
+    .replace(/[٫,]/, ".");
+  const v = parseFloat(western);
   return Number.isFinite(v) ? v : null;
 }
 
 export function bytes(n: number): string {
-  if (n < 1024) return `${n} Б`;
-  if (n < 1024 * 1024) return `${num(n / 1024, 0)} КБ`;
-  return `${num(n / 1024 / 1024, 1)} МБ`;
+  if (n < 1024) return `${num(n, 0)} ${t("unit.bytes")}`;
+  if (n < 1024 * 1024) return `${num(n / 1024, 0)} ${t("unit.kb")}`;
+  return `${num(n / 1024 / 1024, 1)} ${t("unit.mb")}`;
 }

@@ -2,13 +2,10 @@
 
 import type { DayValues, Habit, Workout, WorkSet } from "./types";
 import { dayKey, daysAgo, startOfWeek } from "./utils";
+import { t } from "./i18n";
 
-export const DEFAULT_EXERCISES = [
-  "Жим лёжа", "Приседания со штангой", "Становая тяга", "Жим стоя",
-  "Тяга штанги в наклоне", "Подтягивания", "Отжимания на брусьях",
-  "Жим ногами", "Тяга верхнего блока", "Сгибания на бицепс", "Французский жим",
-  "Разведения гантелей", "Выпады", "Румынская тяга", "Планка",
-];
+// default suggestions in the current language
+export const defaultExercises = (): string[] => t("gym.defaultExercises").split("|");
 
 export const activeWorkout = (ws: Workout[]) => ws.find((w) => !w.end) ?? null;
 
@@ -42,7 +39,7 @@ export const e1rm = (w: number, r: number) => (r <= 1 ? w : w * (1 + r / 30));
 
 export function exerciseNames(ws: Workout[]): string[] {
   const used = finishedWorkouts(ws).flatMap((w) => w.items.map((i) => i.name));
-  return [...new Set([...used, ...DEFAULT_EXERCISES])];
+  return [...new Set([...used, ...defaultExercises()])];
 }
 
 // Last set of this exercise in a previous workout: pre-fills weight and reps
@@ -80,7 +77,7 @@ export function exerciseHistory(ws: Workout[], name: string): ExercisePoint[] {
 export function duration(ms: number): string {
   const m = Math.floor(ms / 60000);
   const h = Math.floor(m / 60);
-  return h ? `${h} ч ${m % 60} мин` : `${m} мин`;
+  return h ? t("gym.durationHM", { h, m: m % 60 }) : t("gym.durationM", { m });
 }
 
 export function clock(ms: number): string {

@@ -7,7 +7,8 @@ import { createPortal } from "preact/compat";
 import { data, update } from "../store";
 import type { Folder, Note } from "../types";
 import { closeOverlay, openOverlay } from "../nav";
-import { formatDate, newId, num, plural } from "../utils";
+import { formatDate, newId, num } from "../utils";
+import { t } from "../i18n";
 import { ask, Empty, Icon, PageHead, toast } from "../ui";
 import { confirmAsk, haptic, hapticOk } from "../telegram";
 import { useHold, type MenuItem } from "../gestures";
@@ -25,7 +26,7 @@ export function tagsOf(text: string): string[] {
 
 export function titleOf(text: string): string {
   const first = text.trim().split("\n")[0] ?? "";
-  return first.length > 60 ? first.slice(0, 60) + "…" : first || "Без названия";
+  return first.length > 60 ? first.slice(0, 60) + "…" : first || t("notes.untitled");
 }
 
 function previewOf(text: string): string {
@@ -42,9 +43,9 @@ function tagHue(tag: string): number {
 
 function relTime(ms: number): string {
   const diff = Date.now() - ms;
-  if (diff < 60_000) return "только что";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} мин назад`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} ч назад`;
+  if (diff < 60_000) return t("notes.justNow");
+  if (diff < 3_600_000) return t("notes.minAgo", { n: Math.floor(diff / 60_000) });
+  if (diff < 86_400_000) return t("notes.hoursAgo", { n: Math.floor(diff / 3_600_000) });
   return formatDate(ms, { day: "numeric", month: "short" });
 }
 
@@ -98,13 +99,17 @@ function moveToFolder(noteId: string, folderId: string | null) {
   }));
   const f = data.value.folders.find((x) => x.id === folderId);
   hapticOk();
-  toast(f ? `Перемещено в «${f.name}»` : "Убрано из папки");
+  toast(f ? t("notes.movedTo", { name: f.name }) : t("notes.removedFromFolder"));
 }
 
 // ---------- folders ----------
 
 async function newFolder(): Promise<string | null> {
-  const v = await ask({ title: "Новая папка", fields: [{ name: "name", label: "Название", placeholder: "Идеи" }], ok: "Создать" });
+  const v = await ask({
+    title: t("notes.newFolder"),
+    fields: [{ name: "name", label: t("common.name"), placeholder: t("notes.folderPlaceholder") }],
+    ok: t("common.create"),
+  });
   const name = v?.name.trim().slice(0, 40);
   if (!name) return null;
   const f: Folder = { id: newId(), name, created: Date.now() };
@@ -113,7 +118,7 @@ async function newFolder(): Promise<string | null> {
 }
 
 async function renameFolder(f: Folder) {
-  const v = await ask({ title: "Переименовать папку", fields: [{ name: "name", label: "Название", value: f.name }] });
+  const v = await ask({ title: t("notes.renameFolder"), fields: [{ name: "name", label: t("common.name"), value: f.name }] });
   const name = v?.name.trim().slice(0, 40);
   if (name) update("folders", (fs) => fs.map((x) => (x.id === f.id ? { ...x, name } : x)));
 }
@@ -121,8 +126,8 @@ async function renameFolder(f: Folder) {
 async function deleteFolder(f: Folder) {
   const count = data.value.notes.filter((n) => n.folder === f.id).length;
   const msg = count
-    ? `Удалить папку «${f.name}»? ${count} ${plural(count, "заметка останется", "заметки останутся", "заметок останутся")} во «Всех заметках».`
-    : `Удалить папку «${f.name}»?`;
+    ? t("notes.deleteFolderKeep", { name: f.name, n: count })
+    : t("notes.deleteFolderAsk", { name: f.name });
   if (!(await confirmAsk(msg))) return;
   update("notes", (ns) => ns.map((n) => {
     if (n.folder !== f.id) return n;
@@ -144,17 +149,17 @@ function FolderTile({ folder, count }: { folder: Folder | null; count: number })
   const ref = useHold<HTMLButtonElement>({
     menu: folder ? () => [
       shareImageItem(`folder:${folder.id}`),
-      { label: "Поделиться текстом", icon: "share", run: () => shareText(folderText(folder)) },
-      { label: "Копировать все заметки", icon: "copy", run: () => copyText(folderText(folder)) },
-      { label: "Переименовать", icon: "edit", run: () => renameFolder(folder) },
-      { label: "Удалить папку", icon: "trash", danger: true, run: () => deleteFolder(folder) },
+      { label: t("notes.shareText"), icon: "share", run: () => shareText(folderText(folder)) },
+      { label: t("notes.copyAll"), icon: "copy", run: () => copyText(folderText(folder)) },
+      { label: t("notes.rename"), icon: "edit", run: () => renameFolder(folder) },
+      { label: t("notes.deleteFolder"), icon: "trash", danger: true, run: () => deleteFolder(folder) },
     ] : undefined,
   });
   return (
     <button ref={ref} class={`folder ${on ? "on" : ""}`} data-drop={`folder:${id ?? ""}`}
       onClick={() => { haptic(); currentFolder.value = id; }}>
       <span class="folder-ico"><Icon name={folder ? "folder" : "notes"} size={20} /></span>
-      <b>{folder?.name ?? "Все"}</b>
+      <b>{folder?.name ?? t("notes.all")}</b>
       <small>{num(count, 0)}</small>
     </button>
   );
@@ -166,9 +171,9 @@ function moveMenu(note: Note): MenuItem[] {
   const items: MenuItem[] = data.value.folders
     .filter((f) => f.id !== note.folder)
     .map((f) => ({ label: f.name, icon: "folder", run: () => moveToFolder(note.id, f.id) }));
-  if (note.folder) items.unshift({ label: "Убрать из папки", icon: "notes", run: () => moveToFolder(note.id, null) });
+  if (note.folder) items.unshift({ label: t("notes.removeFromFolder"), icon: "notes", run: () => moveToFolder(note.id, null) });
   items.push({
-    label: "Новая папка…", icon: "plus",
+    label: t("notes.newFolderItem"), icon: "plus",
     run: async () => {
       const id = await newFolder();
       if (id) moveToFolder(note.id, id);
@@ -178,7 +183,7 @@ function moveMenu(note: Note): MenuItem[] {
 }
 
 async function deleteNote(note: Note) {
-  if (!(await confirmAsk(`Удалить заметку «${titleOf(note.text)}»?`))) return;
+  if (!(await confirmAsk(t("notes.deleteNoteAsk", { name: titleOf(note.text) })))) return;
   update("notes", (ns) => ns.filter((n) => n.id !== note.id));
 }
 
@@ -187,11 +192,11 @@ function NoteRow({ note }: { note: Note }) {
   const folder = !currentFolder.value && note.folder ? data.value.folders.find((f) => f.id === note.folder) : undefined;
   const ref = useHold<HTMLButtonElement>({
     menu: () => [
-      { label: "Копировать", icon: "copy", run: () => copyText(note.text) },
-      { label: "Поделиться текстом", icon: "share", run: () => shareText(note.text) },
+      { label: t("common.copy"), icon: "copy", run: () => copyText(note.text) },
+      { label: t("notes.shareText"), icon: "share", run: () => shareText(note.text) },
       shareImageItem(`note:${note.id}`),
-      { label: note.folder ? "Переместить в папку" : "В папку", icon: "folder", submenu: () => moveMenu(note) },
-      { label: "Удалить", icon: "trash", danger: true, run: () => deleteNote(note) },
+      { label: note.folder ? t("notes.moveToFolder") : t("notes.toFolder"), icon: "folder", submenu: () => moveMenu(note) },
+      { label: t("common.delete"), icon: "trash", danger: true, run: () => deleteNote(note) },
     ],
     sort: {
       group: "notes",
@@ -230,11 +235,11 @@ export function Notes() {
 
   return (
     <>
-      <PageHead title={folder?.name ?? "Заметки"}
-        sub={`${num(visible.length, 0)} ${plural(visible.length, "запись", "записи", "записей")}`} />
+      <PageHead title={folder?.name ?? t("notes.title")}
+        sub={t("notes.count", { n: visible.length })} />
       <div class="search-box big">
         <Icon name="search" size={18} />
-        <input type="search" placeholder="Поиск по заметкам" value={query.value}
+        <input type="search" placeholder={t("notes.search")} value={query.value}
           onInput={(e) => (query.value = e.currentTarget.value)} />
       </div>
 
@@ -243,8 +248,8 @@ export function Notes() {
         {folders.map((f) => <FolderTile key={f.id} folder={f} count={notes.filter((n) => n.folder === f.id).length} />)}
         <button class="folder add" onClick={async () => { const id = await newFolder(); if (id) currentFolder.value = id; }}>
           <span class="folder-ico"><Icon name="plus" size={20} /></span>
-          <b>Папка</b>
-          <small>новая</small>
+          <b>{t("notes.folder")}</b>
+          <small>{t("notes.folderNew")}</small>
         </button>
       </div>
 
@@ -260,16 +265,16 @@ export function Notes() {
       <div class="note-list">
         {visible.map((n) => <NoteRow key={n.id} note={n} />)}
       </div>
-      {!notes.length && <Empty icon="notes">Здесь будут твои мысли, идеи и списки. Нажми «+», чтобы записать первую. Теги ставь через #.</Empty>}
+      {!notes.length && <Empty icon="notes">{t("notes.empty")}</Empty>}
       {notes.length > 0 && !visible.length && (
-        <Empty icon={q ? "search" : "folder"}>{q ? "Ничего не нашлось" : "Папка пустая. Зажми заметку и перетащи её сюда или выбери «В папку»."}</Empty>
+        <Empty icon={q ? "search" : "folder"}>{q ? t("notes.notFound") : t("notes.folderEmpty")}</Empty>
       )}
-      {notes.length > 1 && <p class="footnote center">Зажми заметку: меню. Зажми и веди: перемещение или в папку.</p>}
+      {notes.length > 1 && <p class="footnote center">{t("notes.hint")}</p>}
 
       {/* rendered into <body>: the page's slide-in animation uses a transform,
           which would otherwise make this fixed button move with the page */}
       {createPortal(
-        <button class="fab" aria-label="Новая заметка" onClick={() => openOverlay({ name: "editor", id: null })}>
+        <button class="fab" aria-label={t("notes.newNote")} onClick={() => openOverlay({ name: "editor", id: null })}>
           <Icon name="plus" size={28} />
         </button>,
         document.body,
@@ -312,7 +317,7 @@ export function NoteEditor({ id }: { id: string | null }) {
   };
 
   const remove = async () => {
-    if (!(await confirmAsk("Удалить заметку?"))) return;
+    if (!(await confirmAsk(t("notes.deleteNote")))) return;
     editorText.current = "";
     update("notes", (ns) => ns.filter((n) => n.id !== id));
     closeOverlay();
@@ -323,17 +328,17 @@ export function NoteEditor({ id }: { id: string | null }) {
   return (
     <div class="editor">
       <div class="editor-top">
-        <button class="icon-btn" aria-label="Назад" onClick={done}><Icon name="chevron" size={22} /></button>
-        <span class="muted small">{note ? `Изменено ${relTime(note.updated)}` : "Новая заметка"} · {words} {plural(words, "слово", "слова", "слов")}</span>
+        <button class="icon-btn" aria-label={t("common.back")} onClick={done}><Icon name="chevron" size={22} /></button>
+        <span class="muted small">{note ? t("notes.edited", { time: relTime(note.updated) }) : t("notes.newNote")} · {t("notes.words", { n: words })}</span>
         <span class="row-actions">
-          {text.trim() && <button class="icon-btn" aria-label="Копировать" onClick={() => copyText(text)}><Icon name="copy" size={20} /></button>}
-          {text.trim() && <button class="icon-btn" aria-label="Поделиться" onClick={() => shareText(text)}><Icon name="share" size={20} /></button>}
-          {note && <button class="icon-btn danger" aria-label="Удалить" onClick={remove}><Icon name="trash" size={20} /></button>}
+          {text.trim() && <button class="icon-btn" aria-label={t("common.copy")} onClick={() => copyText(text)}><Icon name="copy" size={20} /></button>}
+          {text.trim() && <button class="icon-btn" aria-label={t("common.share")} onClick={() => shareText(text)}><Icon name="share" size={20} /></button>}
+          {note && <button class="icon-btn danger" aria-label={t("common.delete")} onClick={remove}><Icon name="trash" size={20} /></button>}
         </span>
       </div>
-      <textarea ref={area} class="editor-text" value={text} placeholder={"Заголовок\n\nПиши мысль. Теги через #, например #идея"}
+      <textarea ref={area} class="editor-text" value={text} placeholder={t("notes.editorPlaceholder")}
         onInput={(e) => setText(e.currentTarget.value)} />
-      <button class="btn block dock" onClick={done}><Icon name="check" size={18} /> Готово</button>
+      <button class="btn block dock" onClick={done}><Icon name="check" size={18} /> {t("common.done")}</button>
     </div>
   );
 }
