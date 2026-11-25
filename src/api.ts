@@ -3,6 +3,7 @@
 
 import { signal } from "@preact/signals";
 import { canUse, inTelegram, tg } from "./telegram";
+import { lang } from "./i18n";
 
 const API_BASE: string = (import.meta.env.VITE_API_BASE ?? "").replace(/\/$/, "");
 
@@ -24,7 +25,7 @@ export async function api<T>(path: string, body: Record<string, unknown> = {}): 
     res = await fetch(API_BASE + path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ initData: tg!.initData, ...body }),
+      body: JSON.stringify({ initData: tg!.initData, lang: lang.value, ...body }),
     });
   } catch {
     throw new ApiError("offline", 0);
