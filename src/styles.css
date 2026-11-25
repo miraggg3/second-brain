@@ -929,13 +929,12 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 
 /* ---------- long press to share ---------- */
 /* no iOS text selection / callout menu while holding a shareable item */
-.hero, .tile, .stat-row, .habit, .tracker, .history, .achievement,
-.profile-stats, .note, .gym-banner, .card {
+.hero, .tile, .tracker, .habit, .stat-row, .history, .shareable {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
 }
-.card input, .card textarea { -webkit-user-select: text; user-select: text; }
+.shareable input, .shareable textarea { -webkit-user-select: text; user-select: text; }
 
 /* ---------- picture for sharing (off-screen, see share.ts) ---------- */
 .share-frame {

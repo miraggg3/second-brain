@@ -1,6 +1,6 @@
 // "Поделиться": send any card as a picture, exactly as it looks in the app.
 //
-// Hold any card, tile or tracker for ~0.5s (one listener for the whole app),
+// Hold a tracker for ~0.5s (one listener for the whole app),
 // or tap a share button. The card is copied into an off-screen frame (padding,
 // background, app name + bot link at the bottom) and turned into a JPEG.
 // Only the picture is sent, no separate text message:
@@ -21,12 +21,11 @@ const BOT: string = (import.meta.env.VITE_BOT_USERNAME ?? "").replace(/^@/, "");
 // opens the bot's main Mini App
 export const appLink = BOT ? `https://t.me/${BOT}?startapp` : "";
 
-// Everything that can be shared. closest() picks the innermost match, so a
-// tile inside a card is shared alone, not the whole card.
-const SHAREABLE = [
-  ".hero", ".tile", ".stat-row", ".habit", ".tracker", ".history", ".achievement",
-  ".profile-stats", ".note", ".gym-banner", ".card",
-].join(", ");
+// Only trackers can be shared: day rings, body tiles, habits, custom
+// trackers, gym stats and workouts, and cards marked "shareable" (progress
+// charts, gym visits). Hints, banners, notes and settings can't.
+// closest() picks the innermost match: a tile is shared alone.
+const SHAREABLE = [".hero", ".tile", ".tracker", ".habit", ".stat-row", ".history", ".shareable"].join(", ");
 
 // never start a share from these
 const NOT_SHAREABLE = "input, textarea, select, .sheet, .tabbar, .fab, .stepper, .editor, .segmented, .chips";

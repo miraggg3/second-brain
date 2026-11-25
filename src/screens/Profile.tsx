@@ -3,7 +3,6 @@
 
 import { data, isPremium, update } from "../store";
 import { ModeSwitch } from "./Appearance";
-import { shareCard } from "../share";
 import { finishedWorkouts, habitStreak } from "../domain";
 import { dayKey, daysAgo, formatDate, num, parseNum, plural } from "../utils";
 import { ask, Avatar, Icon, Row, type IconName } from "../ui";
@@ -93,10 +92,6 @@ export function Profile() {
       <div class="section-row">
         <h2 class="section-title">Достижения</h2>
         <span class="muted small">{earned} из {list.length}</span>
-        <button class="icon-btn" aria-label="Поделиться достижениями"
-          onClick={() => shareCard(document.querySelector<HTMLElement>(".achievements"))}>
-          <Icon name="share" size={19} />
-        </button>
       </div>
       <div class="achievements">
         {list.map((a) => (
