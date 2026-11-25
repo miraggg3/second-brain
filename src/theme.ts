@@ -16,7 +16,7 @@ export const scheme = signal(detectScheme());
 // Theme colors of the Telegram app itself
 function telegramPalette(): Palette {
   const dark = scheme.value === "dark";
-  const base = dark ? PALETTES.midnight : PALETTES.snow;
+  const base = dark ? PALETTES.dark : PALETTES.light;
   const p = tg?.themeParams ?? {};
   const accent = p.button_color ?? base.accent;
   return {
@@ -33,7 +33,7 @@ function telegramPalette(): Palette {
 }
 
 export function paletteOf(id: ThemeId): Palette {
-  if (id === "auto") return scheme.value === "dark" ? PALETTES.midnight : PALETTES.snow;
+  if (id === "auto") return scheme.value === "dark" ? PALETTES.dark : PALETTES.light;
   if (id === "telegram") return telegramPalette();
   return PALETTES[id];
 }
@@ -46,7 +46,7 @@ export function initTheme() {
     const s = data.value.settings;
     // premium themes/styles fall back when the subscription ends
     const themeId = themeIsPremium(s.theme) && !isPremium.value ? "auto" : s.theme;
-    const style = s.style === "glass" && !isPremium.value ? "soft" : s.style;
+    const style = s.style === "glass" && !isPremium.value ? "clean" : s.style;
     const p = paletteOf(themeId);
     const root = document.documentElement;
     root.dataset.mode = p.dark ? "dark" : "light";
