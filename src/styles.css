@@ -47,7 +47,7 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
 
-html { background: var(--bg); }
+html { background: var(--bg); touch-action: manipulation; } /* no double-tap zoom */
 
 body {
   margin: 0;
@@ -1532,3 +1532,71 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
 .hero-ring { cursor: pointer; border-radius: 18px; transition: transform .15s; }
 .hero-ring:active { transform: scale(.94); }
 #habits-card, #body-widgets { scroll-margin-top: 12px; }
+
+/* ---------- chart details (Insight) ---------- */
+.card.tap { cursor: pointer; transition: transform .15s; }
+.card.tap:active { transform: scale(.985); }
+.more-link { display: inline-flex; align-items: center; gap: 2px; color: var(--accent); font-size: 14px; font-weight: 600; }
+.chart.tappable { cursor: crosshair; }
+.chart .guide { stroke: currentColor; stroke-width: 1.5; stroke-dasharray: 3 4; opacity: .6; }
+.chart .bar.sel { opacity: 1; }
+.chart .bar.dim { opacity: .35; }
+.chart-tip { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 8px 2px 0; font-size: 14px; min-height: 20px; }
+.chart-tip b { font-size: 16px; }
+.stat-row.four { grid-template-columns: repeat(4, 1fr); }
+.stat-row.four .stat b { font-size: 19px; }
+.day-list { padding: 4px 0; }
+.day-row { display: flex; align-items: center; gap: 12px; padding: 11px 16px; }
+.day-row + .day-row { border-top: 1px solid var(--line); }
+.day-row b { display: block; font-weight: 600; font-size: 15px; }
+.day-row small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; direction: ltr; text-align: start; }
+.day-value { font-weight: 650; white-space: nowrap; }
+.feel-stats { display: grid; gap: 8px; }
+.feel-stat { display: flex; align-items: center; gap: 10px; }
+.feel-emoji { font-size: 22px; width: 30px; text-align: center; }
+
+/* ---------- water portion ---------- */
+.tile-actions .portion-btn { min-width: 28px; padding: 0; transform: rotate(90deg); }
+.portion-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+.portion {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 12px 4px; border-radius: 16px; background: var(--soft);
+}
+.portion b { font-size: 18px; }
+.portion small { color: var(--muted); font-size: 12px; }
+.portion.on { background: var(--c-water); color: #fff; }
+.portion.on small { color: rgba(255, 255, 255, .85); }
+
+/* ---------- mood + feelings ---------- */
+.tile-open { display: flex; flex-direction: column; gap: 6px; text-align: start; width: 100%; }
+.tile-feelings { display: block; font-size: 16px; letter-spacing: 1px; margin-top: 2px; }
+.head-plus {
+  margin-inline-start: auto;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--c-mood) 16%, transparent); color: var(--c-mood);
+}
+.tile-actions button { white-space: nowrap; }
+.tile-actions button.primary { font-size: 13px; padding: 0 6px; gap: 2px; min-width: 0; }
+.mood-scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 16px; }
+.mood-scale button, .feel-grid button {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 2px; border-radius: 14px; background: var(--soft);
+  transition: background .15s, transform .15s;
+}
+.mood-scale button span { font-size: 28px; line-height: 1; }
+.mood-scale button small, .feel-grid button small { font-size: 11.5px; color: var(--muted); text-align: center; line-height: 1.2; }
+.mood-scale button.on { background: color-mix(in srgb, var(--c-mood) 22%, transparent); transform: scale(1.04); }
+.mood-scale button.on small { color: var(--text); font-weight: 600; }
+.feel-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; max-height: 46vh; overflow-y: auto; }
+.feel-grid button span { font-size: 24px; line-height: 1; }
+.feel-grid button.on { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.feel-grid button.on small { color: var(--text); font-weight: 600; }
+/* five mood faces always fit a half-width tile */
+.tile .moods { gap: 0; min-width: 0; }
+.tile .moods button { flex: 1 1 0; font-size: clamp(16px, 5vw, 22px); padding: 1px 0; min-width: 0; }
+.tile .moods button.on { transform: scale(1.18); }
+/* four stats fit even a 320px screen: columns may shrink, captions wrap */
+.stat-row.four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.stat-row.four .stat { padding: 10px 4px; min-width: 0; }
+.stat small { overflow-wrap: anywhere; hyphens: auto; }

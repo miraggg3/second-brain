@@ -1,0 +1,32 @@
+import type { Entry } from "..";
+
+// details behind charts in "Прогресс" (screens/Insight.tsx)
+export default {
+  "insight.details": "Подробнее",
+  "insight.tapHint": "Нажми на график, чтобы увидеть день",
+  "insight.range7": "7 дней",
+  "insight.range30": "30 дней",
+  "insight.range90": "90 дней",
+  "insight.range365": "Год",
+  "insight.avg": "в среднем",
+  "insight.min": "минимум",
+  "insight.max": "максимум",
+  "insight.total": "всего",
+  "insight.change": "изменение, кг",
+  "insight.records": { one: "запись", few: "записи", many: "записей", other: "записи" },
+  "insight.goalDays": { one: "день в норме", few: "дня в норме", many: "дней в норме", other: "дня в норме" },
+  "insight.nights7": { one: "ночь 7+ ч", few: "ночи 7+ ч", many: "ночей 7+ ч", other: "ночи 7+ ч" },
+  "insight.doneDays": { one: "день выполнено", few: "дня выполнено", many: "дней выполнено", other: "дня выполнено" },
+  "insight.workouts": { one: "тренировка", few: "тренировки", many: "тренировок", other: "тренировки" },
+  "insight.percent": "выполнено",
+  "insight.streakNow": "серия сейчас",
+  "insight.bestStreak": "лучшая серия",
+  "insight.best1rm": "лучший 1ПМ, кг",
+  "insight.maxWeight": "макс. вес, кг",
+  "insight.volume": "объём, кг",
+  "insight.done": "выполнено",
+  "insight.missed": "пропуск",
+  "insight.topFeelings": "Чаще всего чувствовал",
+  "insight.byDay": "По дням",
+  "insight.noData": "За этот период записей нет",
+} satisfies Record<string, Entry>;

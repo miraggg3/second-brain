@@ -9,6 +9,7 @@ import premium from "./premium";
 import appearance from "./appearance";
 import app from "./app";
 import share from "./share";
+import insight from "./insight";
 import type { Dict } from "..";
 
 export default {
@@ -23,4 +24,5 @@ export default {
   ...appearance,
   ...app,
   ...share,
+  ...insight,
 } satisfies Dict;

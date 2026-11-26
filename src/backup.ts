@@ -3,7 +3,7 @@
 // or foreign file can never corrupt the app.
 
 import type {
-  AppData, DayValues, Exercise, Folder, Habit, Metrics, Note, Tracker, UserData, Workout,
+  AppData, DayValues, Exercise, Feelings, Folder, Habit, Metrics, Note, Tracker, UserData, Workout,
 } from "./types";
 import { DEFAULTS } from "./store";
 import { isCardStyle, isThemeId } from "./themes";
@@ -108,6 +108,18 @@ const cleanTracker = (x: Obj): Tracker | null => {
   return { id, name, unit: str(x.unit, 16) ?? "", step: step && step > 0 ? step : 1, values: dayValues(x.values) };
 };
 
+const FEELING_RE = /^[a-z]{2,16}$/;
+function cleanFeelings(v: unknown): Feelings {
+  const out: Feelings = {};
+  if (!isObj(v)) return out;
+  for (const [day, list] of Object.entries(v)) {
+    if (!DAY_RE.test(day) || !Array.isArray(list)) continue;
+    const ids = [...new Set(list.filter((x): x is string => typeof x === "string" && FEELING_RE.test(x)))].slice(0, 20);
+    if (ids.length) out[day] = ids;
+  }
+  return out;
+}
+
 function cleanMetrics(v: unknown): Metrics {
   const m = isObj(v) ? v : {};
   return { water: dayValues(m.water), sleep: dayValues(m.sleep), mood: dayValues(m.mood), weight: dayValues(m.weight) };
@@ -142,6 +154,7 @@ export function parseBackup(text: string): Backup {
       workouts: arr(d.workouts, cleanWorkout),
       habits: arr(d.habits, cleanHabit),
       metrics: cleanMetrics(d.metrics),
+      feelings: cleanFeelings(d.feelings),
       trackers: arr(d.trackers, cleanTracker),
       settings: {
         ...DEFAULTS.settings,
@@ -150,6 +163,7 @@ export function parseBackup(text: string): Backup {
         waterGoal: fin(s.waterGoal) ?? DEFAULTS.settings.waterGoal,
         joined: fin(s.joined) ?? 0,
         widgets: cleanWidgets(s.widgets),
+        waterPortion: fin(s.waterPortion) ?? undefined,
         lang: isLang(s.lang) ? s.lang : undefined,
       },
     },
@@ -200,6 +214,12 @@ export function mergeData(local: AppData, inc: UserData): AppData {
     habits: byId(local.habits, inc.habits, (a, b) => ({ ...b, done: { ...a.done, ...b.done } })),
     trackers: byId(local.trackers, inc.trackers, (a, b) => ({ ...b, values: { ...a.values, ...b.values } })),
     metrics,
+    // feelings of the same day from both devices are combined
+    feelings: Object.fromEntries(
+      [...new Set([...Object.keys(local.feelings), ...Object.keys(inc.feelings)])].map((day) => [
+        day, [...new Set([...(local.feelings[day] ?? []), ...(inc.feelings[day] ?? [])])],
+      ]),
+    ),
     settings: {
       ...local.settings,
       joined: Math.min(local.settings.joined || Date.now(), inc.settings.joined || Date.now()),

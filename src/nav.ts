@@ -8,7 +8,8 @@ export type Overlay =
   | { name: "editor"; id: string | null }
   | { name: "premium" }
   | { name: "data" }
-  | { name: "appearance" };
+  | { name: "appearance" }
+  | { name: "insight"; key: string };
 
 export const tab = signal<Tab>("today");
 export const overlay = signal<Overlay | null>(null);

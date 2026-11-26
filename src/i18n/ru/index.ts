@@ -9,6 +9,7 @@ import premium from "./premium";
 import appearance from "./appearance";
 import app from "./app";
 import share from "./share";
+import insight from "./insight";
 
 // Russian: the source language, bundled with the app
 export default {
@@ -23,4 +24,5 @@ export default {
   ...appearance,
   ...app,
   ...share,
+  ...insight,
 };

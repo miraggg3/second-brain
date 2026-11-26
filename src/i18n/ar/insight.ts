@@ -1,0 +1,32 @@
+import type { Entry } from "..";
+import type ru from "../ru/insight";
+
+export default {
+  "insight.details": "التفاصيل",
+  "insight.tapHint": "اضغط على الرسم البياني لرؤية يوم معيّن",
+  "insight.range7": "7 أيام",
+  "insight.range30": "30 يومًا",
+  "insight.range90": "90 يومًا",
+  "insight.range365": "سنة",
+  "insight.avg": "المتوسط",
+  "insight.min": "الأدنى",
+  "insight.max": "الأعلى",
+  "insight.total": "الإجمالي",
+  "insight.change": "التغيّر، كغ",
+  "insight.records": { zero: "سجلّ", one: "سجلّ", two: "سجلّان", few: "سجلّات", many: "سجلًّا", other: "سجلّ" },
+  "insight.goalDays": { zero: "يوم بلغ الهدف", one: "يوم بلغ الهدف", two: "يومان بلغا الهدف", few: "أيام بلغت الهدف", many: "يومًا بلغ الهدف", other: "يوم بلغ الهدف" },
+  "insight.nights7": { zero: "ليلة 7+ ساعات", one: "ليلة 7+ ساعات", two: "ليلتان 7+ ساعات", few: "ليالٍ 7+ ساعات", many: "ليلةً 7+ ساعات", other: "ليلة 7+ ساعات" },
+  "insight.doneDays": { zero: "يوم مُنجز", one: "يوم مُنجز", two: "يومان مُنجزان", few: "أيام مُنجزة", many: "يومًا مُنجزًا", other: "يوم مُنجز" },
+  "insight.workouts": { zero: "تمرين", one: "تمرين", two: "تمرينان", few: "تمارين", many: "تمرينًا", other: "تمرين" },
+  "insight.percent": "نسبة الإنجاز",
+  "insight.streakNow": "السلسلة الحالية",
+  "insight.bestStreak": "أفضل سلسلة",
+  "insight.best1rm": "أفضل 1RM، كغ",
+  "insight.maxWeight": "أقصى وزن، كغ",
+  "insight.volume": "الحجم، كغ",
+  "insight.done": "مُنجز",
+  "insight.missed": "فائت",
+  "insight.topFeelings": "أكثر ما شعرت به",
+  "insight.byDay": "يومًا بيوم",
+  "insight.noData": "لا توجد سجلّات في هذه الفترة",
+} satisfies Record<keyof typeof ru, Entry>;

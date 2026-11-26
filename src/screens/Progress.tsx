@@ -16,6 +16,11 @@ import { t } from "../i18n";
 type Seg = "body" | "habits" | "gym";
 const seg = signal<Seg>("body");
 
+const insight = (key: string) => openOverlay({ name: "insight", key });
+
+// "more" arrow in a card header: the whole card opens its details
+const More = () => <span class="more-link">{t("insight.details")}<Icon name="chevron" size={16} /></span>;
+
 const series = (map: DayValues, days: Date[]): Point[] =>
   days.map((d) => ({ label: String(d.getDate()), value: map[dayKey(d)] ?? 0 }));
 
@@ -27,15 +32,15 @@ function Body() {
   const moods = lastDays(30).filter((x) => m.mood[dayKey(x)]).map((x) => ({ label: shortDay(x), value: m.mood[dayKey(x)]! }));
   return (
     <>
-      <Card share="metric:weight" title={t("progress.weight")} icon="scale"><LineChart points={weights} unit={` ${t("unit.kg")}`} color="var(--c-weight)" /></Card>
-      <Card share="metric:sleep" title={t("progress.sleep14")} icon="moon"><BarChart points={series(m.sleep, days14)} unit={` ${t("unit.h")}`} goal={8} color="var(--c-sleep)" /></Card>
-      <Card share="metric:water" title={t("progress.water14")} icon="drop">
+      <Card share="metric:weight" title={t("progress.weight")} icon="scale" class="tap" onClick={() => insight("metric:weight")} action={<More />}><LineChart points={weights} unit={` ${t("unit.kg")}`} color="var(--c-weight)" /></Card>
+      <Card share="metric:sleep" title={t("progress.sleep14")} icon="moon" class="tap" onClick={() => insight("metric:sleep")} action={<More />}><BarChart points={series(m.sleep, days14)} unit={` ${t("unit.h")}`} goal={8} color="var(--c-sleep)" /></Card>
+      <Card share="metric:water" title={t("progress.water14")} icon="drop" class="tap" onClick={() => insight("metric:water")} action={<More />}>
         <BarChart points={series(m.water, days14).map((p) => ({ ...p, value: p.value / 1000 }))} unit={` ${t("unit.l")}`}
           goal={d.settings.waterGoal / 1000} color="var(--c-water)" />
       </Card>
-      <Card share="metric:mood" title={t("progress.mood30")} icon="smile"><LineChart points={moods} digits={1} color="var(--c-mood)" /></Card>
+      <Card share="metric:mood" title={t("progress.mood30")} icon="smile" class="tap" onClick={() => insight("metric:mood")} action={<More />}><LineChart points={moods} digits={1} color="var(--c-mood)" summary="avg" /></Card>
       {isPremium.value && d.trackers.map((tr) => (
-        <Card key={tr.id} share={`tracker:${tr.id}`} title={t("progress.tracker14", { name: tr.name })} icon="sparkle">
+        <Card key={tr.id} share={`tracker:${tr.id}`} title={t("progress.tracker14", { name: tr.name })} icon="sparkle" class="tap" onClick={() => insight(`tracker:${tr.id}`)} action={<More />}>
           <BarChart points={series(tr.values, days14)} unit={` ${tr.unit}`} />
         </Card>
       ))}
@@ -66,7 +71,7 @@ function HabitStat({ h, days30 }: { h: Habit; days30: Date[] }) {
   const streak = habitStreak(h);
   const ref = useHold<HTMLDivElement>({ menu: () => [shareImageItem(`habit:${h.id}`)] });
   return (
-          <div ref={ref} class="card habit-stat" data-share={`habit:${h.id}`}>
+          <div ref={ref} class="card habit-stat tap" data-share={`habit:${h.id}`} onClick={() => insight(`habit:${h.id}`)}>
             <Ring value={done / 30} color="var(--accent)" size={58} stroke={6}>
               <b class="small">{Math.round((done / 30) * 100)}%</b>
             </Ring>
@@ -110,10 +115,10 @@ function Gym() {
         <div class="stat"><b>{num(Math.max(...h.map((x) => x.best1rm)))}</b><small>{t("progress.stat1rm")}</small></div>
         <div class="stat"><b>{h.length}</b><small>{t("progress.statWorkouts", { n: h.length })}</small></div>
       </div>
-      <Card share="gym" title={t("progress.oneRm")} icon="trophy">
+      <Card share="gym" title={t("progress.oneRm")} icon="trophy" class="tap" onClick={() => insight(`exercise:${name}`)} action={<More />}>
         <LineChart points={h.map((x) => ({ label: shortDay(x.date), value: x.best1rm }))} unit={` ${t("unit.kg")}`} color="var(--c-gym)" />
       </Card>
-      <Card share="gym" title={t("progress.volume")} icon="gym">
+      <Card share="gym" title={t("progress.volume")} icon="gym" class="tap" onClick={() => insight(`exercise:${name}`)} action={<More />}>
         <LineChart points={h.map((x) => ({ label: shortDay(x.date), value: x.volume }))} unit={` ${t("unit.kg")}`} digits={0} color="var(--c-gym)" />
       </Card>
     </>
