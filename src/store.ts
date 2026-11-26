@@ -13,6 +13,7 @@ const DESIGN_VERSION = 2;
 
 export const DEFAULTS: AppData = {
   notes: [],
+  feelings: {},
   folders: [],
   workouts: [],
   habits: [],

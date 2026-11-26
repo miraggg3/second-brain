@@ -1,0 +1,32 @@
+import type { Entry } from "..";
+import type ru from "../ru/insight";
+
+export default {
+  "insight.details": "Детальніше",
+  "insight.tapHint": "Натисни на графік, щоб побачити день",
+  "insight.range7": "7 днів",
+  "insight.range30": "30 днів",
+  "insight.range90": "90 днів",
+  "insight.range365": "Рік",
+  "insight.avg": "у середньому",
+  "insight.min": "мінімум",
+  "insight.max": "максимум",
+  "insight.total": "усього",
+  "insight.change": "зміна, кг",
+  "insight.records": { one: "запис", few: "записи", many: "записів", other: "запису" },
+  "insight.goalDays": { one: "день у нормі", few: "дні в нормі", many: "днів у нормі", other: "дня в нормі" },
+  "insight.nights7": { one: "ніч 7+ год", few: "ночі 7+ год", many: "ночей 7+ год", other: "ночі 7+ год" },
+  "insight.doneDays": { one: "день виконано", few: "дні виконано", many: "днів виконано", other: "дня виконано" },
+  "insight.workouts": { one: "тренування", few: "тренування", many: "тренувань", other: "тренування" },
+  "insight.percent": "виконано",
+  "insight.streakNow": "серія зараз",
+  "insight.bestStreak": "найкраща серія",
+  "insight.best1rm": "найкращий 1ПМ, кг",
+  "insight.maxWeight": "макс. вага, кг",
+  "insight.volume": "обсяг, кг",
+  "insight.done": "виконано",
+  "insight.missed": "пропуск",
+  "insight.topFeelings": "Найчастіше відчував",
+  "insight.byDay": "По днях",
+  "insight.noData": "За цей період записів немає",
+} satisfies Record<keyof typeof ru, Entry>;

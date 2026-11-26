@@ -68,6 +68,7 @@ export interface Settings {
   widgets?: string[];
   // interface language; none = taken from Telegram on first launch
   lang?: "ru" | "en" | "uk" | "ar";
+  waterPortion?: number; // ml added by one tap, default 250
   tipsSeen?: boolean; // the "how it works" card was closed
 }
 
@@ -76,8 +77,12 @@ export interface Premium {
   lifetime: boolean;
 }
 
+// day -> ids of feelings picked that day (see src/feelings.ts)
+export type Feelings = Record<string, string[]>;
+
 export interface AppData {
   notes: Note[];
+  feelings: Feelings;
   folders: Folder[];
   workouts: Workout[];
   habits: Habit[];

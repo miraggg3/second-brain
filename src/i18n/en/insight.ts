@@ -1,0 +1,32 @@
+import type { Entry } from "..";
+import type ru from "../ru/insight";
+
+export default {
+  "insight.details": "Details",
+  "insight.tapHint": "Tap the chart to see a day",
+  "insight.range7": "7 days",
+  "insight.range30": "30 days",
+  "insight.range90": "90 days",
+  "insight.range365": "Year",
+  "insight.avg": "average",
+  "insight.min": "lowest",
+  "insight.max": "highest",
+  "insight.total": "total",
+  "insight.change": "change, kg",
+  "insight.records": { one: "entry", other: "entries" },
+  "insight.goalDays": { one: "day on goal", other: "days on goal" },
+  "insight.nights7": { one: "night of 7+ h", other: "nights of 7+ h" },
+  "insight.doneDays": { one: "day done", other: "days done" },
+  "insight.workouts": { one: "workout", other: "workouts" },
+  "insight.percent": "done",
+  "insight.streakNow": "current streak",
+  "insight.bestStreak": "best streak",
+  "insight.best1rm": "best 1RM, kg",
+  "insight.maxWeight": "max weight, kg",
+  "insight.volume": "volume, kg",
+  "insight.done": "done",
+  "insight.missed": "missed",
+  "insight.topFeelings": "Felt most often",
+  "insight.byDay": "Day by day",
+  "insight.noData": "No entries for this period",
+} satisfies Record<keyof typeof ru, Entry>;

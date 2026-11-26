@@ -14,6 +14,7 @@ import { Profile } from "./screens/Profile";
 import { PremiumScreen } from "./screens/Premium";
 import { DataScreen } from "./screens/DataScreen";
 import { Appearance } from "./screens/Appearance";
+import { Insight } from "./screens/Insight";
 import { closeHoldMenu, holdMenu, HoldMenuLayer, installHoldGestures } from "./gestures";
 import { t, type Key } from "./i18n";
 import { setThemeTranslator } from "./themes";
@@ -82,6 +83,7 @@ export function App() {
   else if (o?.name === "premium") screen = <PremiumScreen />;
   else if (o?.name === "data") screen = <DataScreen />;
   else if (o?.name === "appearance") screen = <Appearance />;
+  else if (o?.name === "insight") screen = <Insight insightKey={o.key} />;
   else if (tab.value === "today") screen = <Today />;
   else if (tab.value === "gym") screen = <Gym />;
   else if (tab.value === "notes") screen = <Notes />;
@@ -91,7 +93,7 @@ export function App() {
   return (
     <>
       <div class="backdrop" aria-hidden="true" />
-      <main class={`page ${o ? "overlay" : ""}`} key={o ? o.name : tab.value}>{screen}</main>
+      <main class={`page ${o ? "overlay" : ""}`} key={o ? (o.name === "insight" ? `insight:${o.key}` : o.name) : tab.value}>{screen}</main>
       {!o && <TabBar />}
       <HoldMenuLayer />
       <Sheet />

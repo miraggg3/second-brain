@@ -21,6 +21,7 @@ import { shareImageItem } from "../share";
 import { startWorkout } from "./Gym";
 import { reportHabitDone } from "../reminders";
 import { serverOnline } from "../api";
+import { FEELINGS, feelingEmoji, feelingLabel } from "../feelings";
 
 export const MOODS = [
   { emoji: "😫", get label() { return t("today.mood1"); } },
@@ -29,7 +30,8 @@ export const MOODS = [
   { emoji: "🙂", get label() { return t("today.mood4"); } },
   { emoji: "🤩", get label() { return t("today.mood5"); } },
 ];
-const GLASS = 250;
+const PORTIONS = [100, 150, 200, 250, 330, 500, 750];
+const portion = () => data.value.settings.waterPortion || 250;
 const DAY = 86_400_000;
 
 export function setMetric(kind: MetricKind, value: number | null) {
@@ -267,18 +269,65 @@ async function editMetric(kind: "sleep" | "weight") {
   if (v) setMetric(kind, parseNum(v.v));
 }
 
+const portionSheet = signal(false);
+
+async function customPortion() {
+  portionSheet.value = false;
+  const v = await ask({
+    title: t("today.portionTitle"),
+    fields: [{ name: "v", label: t("today.portionLabel"), type: "number", step: "10", value: portion(), suffix: t("unit.ml") }],
+  });
+  const n = v ? parseNum(v.v) : null;
+  if (n && n >= 10 && n <= 3000) setPortion(Math.round(n));
+}
+
+function setPortion(ml: number) {
+  haptic();
+  portionSheet.value = false;
+  update("settings", (s) => ({ ...s, waterPortion: ml }));
+}
+
+function PortionSheet() {
+  if (!portionSheet.value) return null;
+  const cur = portion();
+  const close = () => (portionSheet.value = false);
+  return createPortal(
+    <div class="sheet-bg" onClick={(e) => e.target === e.currentTarget && close()}>
+      <div class="sheet">
+        <div class="sheet-grip" />
+        <h3 class="with-ico"><Icon name="drop" size={22} />{t("today.portionTitle")}</h3>
+        <div class="portion-grid">
+          {PORTIONS.map((ml) => (
+            <button key={ml} class={`portion ${ml === cur ? "on" : ""}`} onClick={() => setPortion(ml)}>
+              <b>{ml}</b><small>{t("unit.ml")}</small>
+            </button>
+          ))}
+          <button class={`portion ${PORTIONS.includes(cur) ? "" : "on"}`} onClick={customPortion}>
+            <b>{PORTIONS.includes(cur) ? "…" : cur}</b><small>{t("today.portionCustom")}</small>
+          </button>
+        </div>
+        <button class="btn block ghost" onClick={close}>{t("common.done")}</button>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function WaterTile() {
   const water = data.value.metrics.water[dayKey()] ?? 0;
   const goal = data.value.settings.waterGoal || 2000;
+  const p = portion();
   return (
     <div class="tile water" data-share="metric:water">
       <div class="tile-head"><span class="tile-ico"><Icon name="drop" size={18} /></span>{t("today.water")}</div>
       <div class="tile-value">{num(water / 1000, 2)}<small> / {num(goal / 1000, 1)} {t("unit.l")}</small></div>
       <div class="bar-line"><i style={{ width: `${Math.min(100, (water / goal) * 100)}%` }} /></div>
       <div class="tile-actions">
-        <button aria-label={t("today.minusGlass")} onClick={() => { haptic(); setMetric("water", Math.max(0, water - GLASS)); }}><Icon name="minus" size={16} /></button>
-        <button class="primary" onClick={() => { haptic(); setMetric("water", water + GLASS); }}><Icon name="plus" size={15} />{GLASS} {t("unit.ml")}</button>
+        <button aria-label={t("today.minusGlass")} onClick={() => { haptic(); setMetric("water", Math.max(0, water - p)); }}><Icon name="minus" size={16} /></button>
+        <button class="primary" onClick={() => { haptic(); setMetric("water", water + p); }}><Icon name="plus" size={15} />{p} {t("unit.ml")}</button>
+        <button class="portion-btn" aria-label={t("today.portionTitle")} onClick={() => (portionSheet.value = true)}><Icon name="chevron" size={14} /></button>
       </div>
+      <PortionSheet />
     </div>
   );
 }
@@ -311,18 +360,73 @@ function WeightTile() {
   );
 }
 
+const moodSheet = signal(false);
+
+function toggleFeeling(id: string) {
+  haptic();
+  const day = dayKey();
+  update("feelings", (all) => {
+    const cur = all[day] ?? [];
+    const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+    const out = { ...all };
+    if (next.length) out[day] = next;
+    else delete out[day];
+    return out;
+  });
+}
+
+function MoodSheet() {
+  if (!moodSheet.value) return null;
+  const mood = data.value.metrics.mood[dayKey()] ?? 0;
+  const picked = data.value.feelings[dayKey()] ?? [];
+  const close = () => (moodSheet.value = false);
+  return createPortal(
+    <div class="sheet-bg" onClick={(e) => e.target === e.currentTarget && close()}>
+      <div class="sheet">
+        <div class="sheet-grip" />
+        <h3>{t("today.moodTitle")}</h3>
+        <div class="mood-scale">
+          {MOODS.map((md, i) => (
+            <button key={md.emoji} class={mood === i + 1 ? "on" : ""} onClick={() => { haptic(); setMetric("mood", mood === i + 1 ? null : i + 1); }}>
+              <span>{md.emoji}</span><small>{md.label}</small>
+            </button>
+          ))}
+        </div>
+        <p class="sheet-note">{t("today.feelings")} · {t("today.feelingsHint")}</p>
+        <div class="feel-grid">
+          {FEELINGS.map((fe) => (
+            <button key={fe.id} class={picked.includes(fe.id) ? "on" : ""} onClick={() => toggleFeeling(fe.id)}>
+              <span>{fe.emoji}</span><small>{feelingLabel(fe.id)}</small>
+            </button>
+          ))}
+        </div>
+        <button class="btn block" onClick={close}>{t("common.done")}</button>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function MoodTile() {
   const mood = data.value.metrics.mood[dayKey()] ?? 0;
+  const picked = data.value.feelings[dayKey()] ?? [];
   return (
     <div class="tile mood" data-share="metric:mood">
-      <div class="tile-head"><span class="tile-ico"><Icon name="smile" size={18} /></span>{t("today.mood")}</div>
-      <div class="tile-value small">{mood ? MOODS[mood - 1]!.label : t("today.howAreYou")}</div>
+      <button class="tile-open" onClick={() => (moodSheet.value = true)}>
+        <div class="tile-head"><span class="tile-ico"><Icon name="smile" size={18} /></span>{t("today.mood")}
+          <span class="head-plus" aria-label={t("today.feelings")}><Icon name="plus" size={14} /></span></div>
+        <div class="tile-value small">
+          {mood ? MOODS[mood - 1]!.label : t("today.howAreYou")}
+          {picked.length > 0 && <span class="tile-feelings">{picked.slice(0, 4).map(feelingEmoji).join("")}{picked.length > 4 ? "…" : ""}</span>}
+        </div>
+      </button>
       <div class="moods">
         {MOODS.map((md, i) => (
           <button key={md.label} class={mood === i + 1 ? "on" : ""} aria-label={md.label}
             onClick={() => { haptic(); setMetric("mood", mood === i + 1 ? null : i + 1); }}>{md.emoji}</button>
         ))}
       </div>
+      <MoodSheet />
     </div>
   );
 }
